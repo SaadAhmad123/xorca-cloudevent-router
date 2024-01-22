@@ -1,8 +1,8 @@
 {
-  "name": "xorca-cloudevent-primer",
+  "name": "xorca-cloudevent-router",
   "author": "Saad Ahmad <saadkwi12@hotmail.com>",
   "version": "0.0.1",
-  "description": "This is a template for npm package",
+  "description": "This package allows to create xOrca spec-ed routers and handlers for cloudevents.",
   "main": "dist/index.js",
   "license": "MIT",
   "scripts": {

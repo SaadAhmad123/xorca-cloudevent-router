@@ -5,7 +5,11 @@ import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 /**
- * Represents a CloudEventHandler that processes CloudEvents.
+ * Represents a CloudEventHandler that processes CloudEvents. This class
+ * allows to not only create CloudEvent handlers but also do so while allowing
+ * for type validation and documentation. Moreover, since this package is
+ * built with xOrca in mind it also preserve subject continuation for keeping 
+ * track of orchestration references.
  * @template TAcceptType - The type of CloudEvent that the handler accepts.
  * @template TEmitType - The type of CloudEvent that the handler emits.
  * @example
