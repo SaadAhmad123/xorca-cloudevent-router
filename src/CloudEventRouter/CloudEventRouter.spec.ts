@@ -210,6 +210,45 @@ describe('CloudEventRouter spec', () => {
     );
   });
 
+  it('should return resp error on timout in handler', async () => {
+    const router = new CloudEventRouter({
+      name: 'SummaryRouter',
+      handlers: [
+        createAyncCloudEventHandler({
+          timeoutMs: 100,
+          name: 'books.fetch',
+          accepts: zod.object({
+            book_id: zod.string(),
+          }),
+          emits: zod.object({
+            book_id: zod.string(),
+            book_content: zod.string().array(),
+          }),
+          handler: async () => {
+            await new Promise((res) => setTimeout(res, 1000));
+            return {};
+          },
+        }),
+      ],
+    });
+    const resp = await router.cloudevents([
+      new CloudEvent({
+        subject: 'saad',
+        type: 'cmd.books.fetch',
+        data: {
+          book_id: 'saad',
+        },
+        source: '/test',
+        datacontenttype: 'application/json',
+      }),
+    ]);
+    expect(resp.length).toBe(1);
+    expect(resp[0].eventToEmit?.type).toBe('evt.books.fetch.timeout');
+    expect(resp[0].eventToEmit?.data?.errorMessage).toBe(
+      'Promise timed out after 100ms.',
+    );
+  });
+
   it('should return the interface of the router', () => {
     const interfaceToExpect = {
       name: 'SummaryRouter',
@@ -295,6 +334,7 @@ describe('CloudEventRouter spec', () => {
                     type: 'string',
                     description: 'The stack of the error',
                   },
+                  eventData: { description: 'The input to the handler' },
                 },
                 required: ['timeout'],
                 additionalProperties: false,

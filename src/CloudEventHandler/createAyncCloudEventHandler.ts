@@ -53,10 +53,11 @@ export default function createAyncCloudEventHandler<TName extends string>(
             .string()
             .optional()
             .describe('The stack of the error'),
+          eventData: zod.any().optional().describe('The input to the handler'),
         }),
       },
     ],
-    handler: async ({ data }) => {
+    handler: async ({ type, data }) => {
       const timeoutMs = params.timeoutMs || 10000;
       try {
         return await timedPromise(async () => {
@@ -84,6 +85,7 @@ export default function createAyncCloudEventHandler<TName extends string>(
             errorName: (err as Error)?.name,
             errorMessage: (err as Error)?.message,
             errorStack: (err as Error)?.stack,
+            eventData: { type, data },
           },
         };
       }
