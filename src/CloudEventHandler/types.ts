@@ -22,7 +22,6 @@ export type CloudEventValidationSchema<TType extends string> = {
   zodSchema: zod.ZodObject<any>;
 };
 
-
 /**
  * Represents an interface for CloudEvent handlers.
  * @template TAcceptType - The type of CloudEvent that the handler accepts.
@@ -78,4 +77,14 @@ export interface ICloudEventHandler<
     type: TAcceptType;
     data: TEventData;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
+}
+
+export interface ICreateAyncCloudEventHandler<TName extends string> {
+  name: TName;
+  description?: string;
+  accepts: zod.ZodObject<any>;
+  emits: zod.ZodObject<any>;
+  handler: (data: Record<string, any>) => Promise<Record<string, any>>;
+  // Default = 10000ms
+  timeoutMs?: number;
 }

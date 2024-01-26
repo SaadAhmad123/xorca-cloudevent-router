@@ -1,6 +1,6 @@
 import CloudEventHandler from '../CloudEventHandler';
 import { CloudEvent } from 'cloudevents';
-import { CloudEventHandlerError } from '../CloudEventHandler/errors';
+import { CloudEventRouterError } from './errors';
 import { timedPromise } from '../utils';
 import { ICloudEventRouter } from './types';
 
@@ -40,46 +40,65 @@ export default class CloudEventRouter {
    *
    * @param events - An array of CloudEvents to be processed.
    * @param errorOnNotFound - If true, returns an error for events without a corresponding handler.
-   * @param timeoutMs - Timeout duration for each CloudEvent processing. Default is 5000ms.
+   * @param timeoutMs - Timeout duration for each CloudEvent processing. Default is 900000ms = 15min.
    * @returns A Promise resolving to an array of processed CloudEvents.
    */
   async cloudevents(
     events: CloudEvent<Record<string, any>>[],
     errorOnNotFound: boolean = true,
-    timeoutMs: number = 5000,
+    timeoutMs: number = 900000,
   ) {
     return (
       await Promise.all(
         events.map(async (item) => {
           if (!this.handlerMap[item.type]) {
             if (!errorOnNotFound) return undefined;
+            const error = new CloudEventRouterError(
+              `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}`,
+            );
             return {
-              eventId: item.id,
               event: item,
               success: false,
-              error: new CloudEventHandlerError(
-                `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}`,
-              ),
+              errorMessage: error?.toString(),
+              errorStack: error?.stack,
+              errorType: 'CloudEventRouterError',
+              eventToEmit: undefined,
             };
           }
-          const resp = await timedPromise(
-            this.handlerMap[item.type].safeCloudevent,
-            timeoutMs,
-          )(item);
-          return {
-            eventId: item.id,
-            event: item,
-            success: resp.success,
-            error: resp.error,
-            eventToEmit: resp.eventToEmit,
-          };
+          try {
+            const resp = await timedPromise(
+              () => this.handlerMap[item.type].safeCloudevent(item),
+              timeoutMs,
+            )();
+            return {
+              event: item,
+              success: resp.success,
+              errorMessage: resp.error?.toString(),
+              errorStack: resp.error?.stack,
+              errorType: resp?.error?.name,
+              eventToEmit: resp.eventToEmit,
+            };
+          } catch (error) {
+            return {
+              event: item,
+              success: false,
+              errorMessage: error?.toString(),
+              errorStack: (error as Error)?.stack,
+              errorType: (error as Error)?.name,
+              eventToEmit: undefined,
+            };
+          }
         }),
       )
     ).filter((item) => Boolean(item)) as Array<{
-      eventId: string;
       event: CloudEvent<Record<string, any>>;
       success: boolean;
-      error?: CloudEventHandlerError;
+      errorMessage?: string;
+      errorStack?: string;
+      errorType?:
+        | 'PromiseTimeoutError'
+        | 'CloudEventHandlerError'
+        | 'CloudEventRouterError';
       eventToEmit?: CloudEvent<Record<string, any>>;
     }>;
   }
@@ -98,5 +117,13 @@ export default class CloudEventRouter {
       description: this.params.description,
       handlers: this.params.handlers.map((item) => item.getInterface()),
     };
+  }
+
+  /**
+   * Get the params of the router. Can be used for cloning
+   * @returns a object with parameters of this object
+   */
+  toDict(): ICloudEventRouter {
+    return { ...this.params };
   }
 }

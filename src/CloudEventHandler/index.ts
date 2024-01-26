@@ -8,7 +8,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
  * Represents a CloudEventHandler that processes CloudEvents. This class
  * allows to not only create CloudEvent handlers but also do so while allowing
  * for type validation and documentation. Moreover, since this package is
- * built with xOrca in mind it also preserve subject continuation for keeping 
+ * built with xOrca in mind it also preserve subject continuation for keeping
  * track of orchestration references.
  * @template TAcceptType - The type of CloudEvent that the handler accepts.
  * @template TEmitType - The type of CloudEvent that the handler emits.
@@ -176,7 +176,9 @@ export default class CloudEventHandler<
           type: `sys.${this.params.name}.error`,
           subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
           data: {
-            error: (e as CloudEventHandlerError).message,
+            errorName: (e as CloudEventHandlerError).name,
+            errorStack: (e as CloudEventHandlerError).stack,
+            errorMessage: (e as CloudEventHandlerError).message,
             additional: (e as CloudEventHandlerError).additional,
             event: (e as CloudEventHandlerError).event,
           },
@@ -211,9 +213,11 @@ export default class CloudEventHandler<
           description:
             "Event raised when error happens while using 'safeCloudevent' method",
           zodSchema: zod.object({
-            error: zod.string(),
-            stack: zod.any(),
-            event: zod.any(),
+            errorName: zod.string().optional(),
+            errorMessage: zod.string().optional(),
+            errorStack: zod.string().optional(),
+            event: zod.string(),
+            additional: zod.any(),
           }),
         },
       ].map((item) => ({
@@ -222,5 +226,13 @@ export default class CloudEventHandler<
         schema: zodToJsonSchema(item.zodSchema),
       })),
     };
+  }
+
+  /**
+   * Get the params of the handler. Can be used for cloning
+   * @returns a object with parameters of this object
+   */
+  toDict(): ICloudEventHandler<TAcceptType, TEmitType> {
+    return this.params;
   }
 }

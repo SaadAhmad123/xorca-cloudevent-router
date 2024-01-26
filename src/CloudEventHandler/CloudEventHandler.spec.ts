@@ -32,7 +32,6 @@ describe('CloudEventHandler Spec', () => {
       },
     ],
     handler: async (event: any) => {
-      console.log({ event });
       return {
         type: 'evt.weather.fetch.success',
         data: {
@@ -306,13 +305,21 @@ describe('CloudEventHandler Spec', () => {
           schema: {
             type: 'object',
             properties: {
-              error: {
+              errorName: {
                 type: 'string',
               },
-              stack: {},
-              event: {},
+              errorMessage: {
+                type: 'string',
+              },
+              errorStack: {
+                type: 'string',
+              },
+              event: {
+                type: 'string',
+              },
+              additional: {},
             },
-            required: ['error'],
+            required: ['event'],
             additionalProperties: false,
             $schema: 'http://json-schema.org/draft-07/schema#',
           },
