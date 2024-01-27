@@ -243,7 +243,7 @@ const results = await myCloudEventRouter.cloudevents(
 // Usage
 
 /**
-{
+results[0] === {
     event: CloudEvent,          // Then input event
     success: boolean,           // process success
     errorMessage?: string       // error message if raised due to router system error
