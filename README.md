@@ -255,3 +255,11 @@ results[0] === {
 ```
 
 This class serves as a versatile and efficient router for CloudEvents, simplifying event handling, parallelizing asynchronous processing, and offering flexibility in managing global timeouts.
+
+## Contributing and Feedback
+
+Contributions are encouraged to expand the library's capabilities, such as adding new storage backends, enhancing locking strategies, and refining documentation. If you have questions, suggestions, or feedback, feel free to open an issue in the GitHub repository.
+
+## License
+
+`xorca-cloudevent-router` is available under the MIT License. For more details, refer to the [LICENSE.md](/LICENSE.md) file in the project repository.
