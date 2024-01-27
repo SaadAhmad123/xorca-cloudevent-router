@@ -3,7 +3,26 @@ import CloudEventHandler from '.';
 import { ICreateAyncCloudEventHandler } from './types';
 import { timedPromise } from '../utils';
 
-export default function createAyncCloudEventHandler<TName extends string>(
+
+/**
+ * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
+ * @param params - Parameters for configuring the CloudEventHandler.
+ * @returns A new CloudEventHandler instance.
+ * @example
+ * // Example usage of createSimpleHandler
+ * const mySimpleHandler = createSimpleHandler({
+ *   name: 'MyCommand',
+ *   description: 'Handles a simple command and its events',
+ *   accepts: zod.object({  ...  }), // Zod schema for command data
+ *   emits: zod.object({  ...  }),   // Zod schema for emitted event data
+ *   handler: async (data) => {
+ *     // Process the command data and return the result
+ *     return { ... };
+ *   },
+ *   timeoutMs: 5000, // Optional timeout in milliseconds
+ * });
+ */
+export default function createSimpleHandler<TName extends string>(
   params: ICreateAyncCloudEventHandler<TName>,
 ) {
   return new CloudEventHandler<

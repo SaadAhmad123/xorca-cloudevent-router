@@ -59,9 +59,9 @@ export default class CloudEventRouter {
             return {
               event: item,
               success: false,
-              errorMessage: error?.toString(),
-              errorStack: error?.stack,
-              errorType: 'CloudEventRouterError',
+              errorMessage: error.toString(),
+              errorStack: error.stack,
+              errorType: error.name,
               eventToEmit: undefined,
             };
           }
@@ -82,9 +82,9 @@ export default class CloudEventRouter {
             return {
               event: item,
               success: false,
-              errorMessage: error?.toString(),
+              errorMessage: `[CloudEventRouter][Timeout=${timeoutMs}]${error?.toString()}`,
               errorStack: (error as Error)?.stack,
-              errorType: (error as Error)?.name,
+              errorType: `[CloudEventRouter][Timeout]`,
               eventToEmit: undefined,
             };
           }

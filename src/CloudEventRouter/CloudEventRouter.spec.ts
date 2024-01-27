@@ -3,9 +3,9 @@ import CloudEventHandler from '../CloudEventHandler';
 import CloudEventRouter from '.';
 import { CloudEvent } from 'cloudevents';
 
-import createAyncCloudEventHandler from '../CloudEventHandler/createAyncCloudEventHandler';
+import createSimpleHandler from '../CloudEventHandler/createSimpleHandler';
 
-const bookFetchHandler = createAyncCloudEventHandler({
+const bookFetchHandler = createSimpleHandler({
   name: 'books.fetch',
   accepts: zod.object({
     book_id: zod.string(),
@@ -177,7 +177,7 @@ describe('CloudEventRouter spec', () => {
     const router = new CloudEventRouter({
       name: 'SummaryRouter',
       handlers: [
-        createAyncCloudEventHandler({
+        createSimpleHandler({
           name: 'books.fetch',
           accepts: zod.object({
             book_id: zod.string(),
@@ -214,7 +214,7 @@ describe('CloudEventRouter spec', () => {
     const router = new CloudEventRouter({
       name: 'SummaryRouter',
       handlers: [
-        createAyncCloudEventHandler({
+        createSimpleHandler({
           timeoutMs: 100,
           name: 'books.fetch',
           accepts: zod.object({
