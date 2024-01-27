@@ -1,3 +1,5 @@
+> For a comprehensive understanding/ documentation of this project, kindly visit the [Github repository](https://github.com/SaadAhmad123/xorca-cloudevent-router).
+
 # xOrca CloudEvent Router
 
 This package is meticulously crafted with a focus on seamless integration with the [xOrca orchestration engine](https://github.com/SaadAhmad123/xOrca). While originally tailored for the xOrca ecosystem, this versatile package stands independently, allowing you to construct robust CloudEvent-based services. It remains agnostic to any specific runtime environment, ensuring compatibility across platforms with a NodeJS executor.
@@ -229,7 +231,7 @@ const myCloudEventRouter = new CloudEventRouter({
     description: "Some router"
     handlers: [
         createSimpleHandler(/* ... */), 
-        createSimpleHandler(/* ... */),
+        new CloudEventHandler(/* ... */),
     ]
 });
 
