@@ -15,19 +15,19 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
  * @example
  * // Example usage of CloudEventHandler
  * const myEventHandler = new CloudEventHandler<'UserCreated', 'UserUpdated' | 'UserUpdatedError'>({
- *   name: 'UserEventHandler',
+ *   name: 'user.update',
  *   description: 'Handles user-related events',
  *   accepts: {
- *     type: 'UserCreated',
+ *     type: 'cmd.user.update',
  *     data: zod.object({ id: zod.string(), name: zod.string() }),
  *   },
  *   emits: [
- *     { type: 'UserUpdated', data: zod.object({ id: zod.string(), name: zod.string() }) },
- *     { type: 'UserUpdatedError', data: zod.object({ error: zod.string() }) },
+ *     { type: 'evt.user.update.success', data: zod.object({ id: zod.string(), name: zod.string() }) },
+ *     { type: 'evt.user.update.error', data: zod.object({ error: zod.string() }) },
  *   ],
  *   handler: async (event) => {
  *     // Process the 'UserCreated' event and return an 'UserUpdated' event.
- *     return { type: 'UserUpdated', data: { id: event.data.id, name: event.data.name } };
+ *     return { type: 'evt.user.update.success', data: { id: event.data.id, name: event.data.name } };
  *   },
  * });
  */
@@ -47,6 +47,35 @@ export default class CloudEventHandler<
         `[CloudEventHandler][constructor] The 'name' must not contain any spaces or special characters but the provided is ${this.params.name}`,
       );
     }
+  }
+
+  /**
+   * Retrieves an array containing all the CloudEvent emissions, including a special error event.
+   * This error event is associated with handling errors while using the 'safeCloudevent' method.
+   * @returns An array of objects representing the CloudEvent emissions, including the error event.
+   */
+  private getAllEmits() {
+    return [
+      ...this.params.emits,
+      {
+        type: `sys.${this.params.name}.error`,
+        zodSchema: zod.object({
+          errorName: zod.string().optional().describe('The name of the error'),
+          errorMessage: zod
+            .string()
+            .optional()
+            .describe('The message of the error'),
+          errorStack: zod
+            .string()
+            .optional()
+            .describe('The stack of the error'),
+          event: zod.string().describe('The event which caused the error'),
+          additional: zod.any().describe('The error additional error data'),
+        }),
+        description:
+          "Event raised when error happens while using 'safeCloudevent' method",
+      },
+    ];
   }
 
   /**
@@ -213,13 +242,93 @@ export default class CloudEventHandler<
   }
 
   /**
+   * Create the Async API spec 3.0.0 channels and operations
+   * for this handler
+   * @param bindings - The bindings object as per https://www.asyncapi.com/docs/reference/specification/v3.0.0#messageBindingsObject
+   * @returns
+   */
+  getAsyncApiChannel(
+    bindings: object = {
+      statusCode: 200,
+      headers: zodToJsonSchema(
+        zod.object({
+          'content-type': zod.literal('application/json'),
+        }),
+      ),
+      bindingVersion: '0.3.0',
+    },
+  ) {
+    return {
+      channels: {
+        [this.params.accepts.type]: {
+          address: this.params.accepts.type,
+          title: this.params.accepts.type,
+          description: this.params.accepts.description,
+          messages: {
+            [this.params.accepts.type]: {
+              name: this.params.accepts.type,
+              description: this.params.accepts.description,
+              contentType: 'application/json',
+              payload: this.makeEventSchema(
+                this.params.accepts.type,
+                this.params.accepts.zodSchema,
+                this.params.accepts.description,
+              ),
+              bindings,
+            },
+          },
+        },
+        ...Object.assign(
+          {},
+          ...this.getAllEmits().map((item) => ({
+            [item.type]: {
+              address: item.type,
+              title: item.type,
+              description: item.description,
+              messages: {
+                [item.type]: {
+                  name: item.type,
+                  description: item.description,
+                  contentType: 'application/json',
+                  payload: this.makeEventSchema(
+                    item.type,
+                    item.zodSchema,
+                    item.description,
+                  ),
+                  bindings,
+                },
+              },
+            },
+          })),
+        ),
+      },
+      operations: Object.assign(
+        {},
+        ...this.getAllEmits().map((item) => ({
+          [item.type]: {
+            action: 'send',
+            channel: {
+              $ref: `#/channels/${this.params.accepts.type}`,
+            },
+            reply: {
+              channel: {
+                $ref: `#/channels/${item.type}`,
+              },
+            },
+          },
+        })),
+      ),
+    };
+  }
+
+  /**
    * Gets an interface representing the CloudEventHandler configuration.
    * @returns An object representing the CloudEventHandler interface.
    * @example
    * // Example usage to get the interface
    * const interfaceInfo = myEventHandler.getInterface();
    * console.log(interfaceInfo);
-   * // Output: { name: 'UserEventHandler', description: 'Handles user-related events', accepts: {...}, emits: [...] }
+   * // Output: { name: 'user.update', description: 'Handles user-related events', accepts: {...}, emits: [...] }
    */
   getInterface(): Record<string, any> {
     return {
@@ -230,31 +339,9 @@ export default class CloudEventHandler<
         this.params.accepts.zodSchema,
         this.params.accepts.description,
       ),
-      emits: [
-        ...this.params.emits.map((item) =>
-          this.makeEventSchema(item.type, item.zodSchema, item.description),
-        ),
-        this.makeEventSchema(
-          `sys.${this.params.name}.error`,
-          zod.object({
-            errorName: zod
-              .string()
-              .optional()
-              .describe('The name of the error'),
-            errorMessage: zod
-              .string()
-              .optional()
-              .describe('The message of the error'),
-            errorStack: zod
-              .string()
-              .optional()
-              .describe('The stack of the error'),
-            event: zod.string().describe('The event which caused the error'),
-            additional: zod.any().describe('The error additional error data'),
-          }),
-          "Event raised when error happens while using 'safeCloudevent' method",
-        ),
-      ],
+      emits: this.getAllEmits().map((item) =>
+        this.makeEventSchema(item.type, item.zodSchema, item.description),
+      ),
     };
   }
 
