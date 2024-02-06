@@ -5,7 +5,7 @@ import {
   ICloudEventHandler,
 } from './CloudEventHandler/types';
 
-import createSimpleHandler from './CloudEventHandler/createSimpleHandler'
+import createSimpleHandler from './CloudEventHandler/createSimpleHandler';
 
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';

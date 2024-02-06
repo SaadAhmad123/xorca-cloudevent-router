@@ -256,189 +256,459 @@ describe('CloudEventRouter spec', () => {
         {
           name: 'books.fetch',
           accepts: {
-            type: 'cmd.books.fetch',
-            schema: {
-              type: 'object',
-              properties: {
-                book_id: {
-                  type: 'string',
-                },
+            type: 'object',
+            properties: {
+              subject: {
+                type: 'string',
+                description: 'The subject of the event',
               },
-              required: ['book_id'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
-            },
-          },
-          emits: [
-            {
-              type: 'evt.books.fetch.success',
-              schema: {
+              type: {
+                type: 'string',
+                const: 'cmd.books.fetch',
+                description: 'The topic of the event',
+              },
+              source: {
+                type: 'string',
+                description: 'The source of the event',
+              },
+              data: {
                 type: 'object',
                 properties: {
                   book_id: {
                     type: 'string',
                   },
-                  book_content: {
-                    type: 'array',
-                    items: {
+                },
+                required: ['book_id'],
+                additionalProperties: false,
+              },
+              datacontenttype: {
+                type: 'string',
+                const: 'application/json',
+                description:
+                  "Must be either 'application/json' or 'application/json; charset=utf-8'",
+              },
+            },
+            required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
+            additionalProperties: false,
+            description: 'The event which can be accepted by this handler',
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+          emits: [
+            {
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
+                },
+                type: {
+                  type: 'string',
+                  const: 'evt.books.fetch.success',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    book_id: {
                       type: 'string',
                     },
+                    book_content: {
+                      type: 'array',
+                      items: {
+                        type: 'string',
+                      },
+                    },
                   },
+                  required: ['book_id', 'book_content'],
+                  additionalProperties: false,
                 },
-                required: ['book_id', 'book_content'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
               },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
+              description: 'The event which can be accepted by this handler',
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
             {
-              type: 'evt.books.fetch.error',
-              schema: {
-                type: 'object',
-                properties: {
-                  errorName: {
-                    type: 'string',
-                    description: 'The name of the error',
-                  },
-                  errorMessage: {
-                    type: 'string',
-                    description: 'The message of the error',
-                  },
-                  errorStack: {
-                    type: 'string',
-                    description: 'The stack of the error',
-                  },
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
                 },
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+                type: {
+                  type: 'string',
+                  const: 'evt.books.fetch.error',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    errorName: {
+                      type: 'string',
+                      description: 'The name of the error',
+                    },
+                    errorMessage: {
+                      type: 'string',
+                      description: 'The message of the error',
+                    },
+                    errorStack: {
+                      type: 'string',
+                      description: 'The stack of the error',
+                    },
+                  },
+                  additionalProperties: false,
+                },
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
               },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
+              description: 'The event which can be accepted by this handler',
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
             {
-              type: 'evt.books.fetch.timeout',
-              schema: {
-                type: 'object',
-                properties: {
-                  timeout: {
-                    type: 'number',
-                    description:
-                      'The timeout in milliseconds which the handler exceeded',
-                  },
-                  errorName: {
-                    type: 'string',
-                    description: 'The name of the error',
-                  },
-                  errorMessage: {
-                    type: 'string',
-                    description: 'The message of the error',
-                  },
-                  errorStack: {
-                    type: 'string',
-                    description: 'The stack of the error',
-                  },
-                  eventData: { description: 'The input to the handler' },
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
                 },
-                required: ['timeout'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+                type: {
+                  type: 'string',
+                  const: 'evt.books.fetch.timeout',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    timeout: {
+                      type: 'number',
+                      description:
+                        'The timeout in milliseconds which the handler exceeded',
+                    },
+                    errorName: {
+                      type: 'string',
+                      description: 'The name of the error',
+                    },
+                    errorMessage: {
+                      type: 'string',
+                      description: 'The message of the error',
+                    },
+                    errorStack: {
+                      type: 'string',
+                      description: 'The stack of the error',
+                    },
+                    eventData: {
+                      description: 'The input to the handler',
+                    },
+                  },
+                  required: ['timeout'],
+                  additionalProperties: false,
+                },
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
               },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
+              description: 'The event which can be accepted by this handler',
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
             {
-              type: 'sys.books.fetch.error',
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
+                },
+                type: {
+                  type: 'string',
+                  const: 'sys.books.fetch.error',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    errorName: {
+                      type: 'string',
+                      description: 'The name of the error',
+                    },
+                    errorMessage: {
+                      type: 'string',
+                      description: 'The message of the error',
+                    },
+                    errorStack: {
+                      type: 'string',
+                      description: 'The stack of the error',
+                    },
+                    event: {
+                      type: 'string',
+                      description: 'The event which caused the error',
+                    },
+                    additional: {
+                      description: 'The error additional error data',
+                    },
+                  },
+                  required: ['event'],
+                  additionalProperties: false,
+                },
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
+              },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
               description:
                 "Event raised when error happens while using 'safeCloudevent' method",
-              schema: {
-                type: 'object',
-                properties: {
-                  errorName: {
-                    type: 'string',
-                  },
-                  errorMessage: {
-                    type: 'string',
-                  },
-                  errorStack: {
-                    type: 'string',
-                  },
-                  event: {
-                    type: 'string',
-                  },
-                  additional: {},
-                },
-                required: ['event'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
           ],
         },
         {
           name: 'gpt.summary',
           accepts: {
-            type: 'cmd.gpt.summary',
-            schema: {
-              type: 'object',
-              properties: {
-                content: {
-                  type: 'string',
-                },
+            type: 'object',
+            properties: {
+              subject: {
+                type: 'string',
+                description: 'The subject of the event',
               },
-              required: ['content'],
-              additionalProperties: false,
-              $schema: 'http://json-schema.org/draft-07/schema#',
+              type: {
+                type: 'string',
+                const: 'cmd.gpt.summary',
+                description: 'The topic of the event',
+              },
+              source: {
+                type: 'string',
+                description: 'The source of the event',
+              },
+              data: {
+                type: 'object',
+                properties: {
+                  content: {
+                    type: 'string',
+                  },
+                },
+                required: ['content'],
+                additionalProperties: false,
+              },
+              datacontenttype: {
+                type: 'string',
+                const: 'application/json',
+                description:
+                  "Must be either 'application/json' or 'application/json; charset=utf-8'",
+              },
             },
+            required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
+            additionalProperties: false,
+            description: 'The event which can be accepted by this handler',
+            $schema: 'http://json-schema.org/draft-07/schema#',
           },
           emits: [
             {
-              type: 'evt.gpt.summary.success',
-              schema: {
-                type: 'object',
-                properties: {
-                  summary: {
-                    type: 'string',
-                  },
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
                 },
-                required: ['summary'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+                type: {
+                  type: 'string',
+                  const: 'evt.gpt.summary.success',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    summary: {
+                      type: 'string',
+                    },
+                  },
+                  required: ['summary'],
+                  additionalProperties: false,
+                },
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
               },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
+              description: 'The event which can be accepted by this handler',
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
             {
-              type: 'evt.gpt.summary.error',
-              schema: {
-                type: 'object',
-                properties: {
-                  error: {
-                    type: 'string',
-                  },
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
                 },
-                required: ['error'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
+                type: {
+                  type: 'string',
+                  const: 'evt.gpt.summary.error',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    error: {
+                      type: 'string',
+                    },
+                  },
+                  required: ['error'],
+                  additionalProperties: false,
+                },
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
               },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
+              description: 'The event which can be accepted by this handler',
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
             {
-              type: 'sys.gpt.summary.error',
+              type: 'object',
+              properties: {
+                subject: {
+                  type: 'string',
+                  description: 'The subject of the event',
+                },
+                type: {
+                  type: 'string',
+                  const: 'sys.gpt.summary.error',
+                  description: 'The topic of the event',
+                },
+                source: {
+                  type: 'string',
+                  description: 'The source of the event',
+                },
+                data: {
+                  type: 'object',
+                  properties: {
+                    errorName: {
+                      type: 'string',
+                      description: 'The name of the error',
+                    },
+                    errorMessage: {
+                      type: 'string',
+                      description: 'The message of the error',
+                    },
+                    errorStack: {
+                      type: 'string',
+                      description: 'The stack of the error',
+                    },
+                    event: {
+                      type: 'string',
+                      description: 'The event which caused the error',
+                    },
+                    additional: {
+                      description: 'The error additional error data',
+                    },
+                  },
+                  required: ['event'],
+                  additionalProperties: false,
+                },
+                datacontenttype: {
+                  type: 'string',
+                  const: 'application/json',
+                  description:
+                    "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                },
+              },
+              required: [
+                'subject',
+                'type',
+                'source',
+                'data',
+                'datacontenttype',
+              ],
+              additionalProperties: false,
               description:
                 "Event raised when error happens while using 'safeCloudevent' method",
-              schema: {
-                type: 'object',
-                properties: {
-                  errorName: {
-                    type: 'string',
-                  },
-                  errorMessage: {
-                    type: 'string',
-                  },
-                  errorStack: {
-                    type: 'string',
-                  },
-                  event: {
-                    type: 'string',
-                  },
-                  additional: {},
-                },
-                required: ['event'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
+              $schema: 'http://json-schema.org/draft-07/schema#',
             },
           ],
         },

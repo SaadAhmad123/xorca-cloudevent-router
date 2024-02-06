@@ -239,90 +239,191 @@ describe('CloudEventHandler Spec', () => {
       name: 'weather.fetch',
       description: 'It fetches the weather data from opensource',
       accepts: {
-        type: 'cmd.weather.fetch',
-        schema: {
-          type: 'object',
-          properties: {
-            date: {
-              type: 'string',
-              format: 'date-time',
-            },
+        type: 'object',
+        properties: {
+          subject: {
+            type: 'string',
+            description: 'The subject of the event',
           },
-          required: ['date'],
-          additionalProperties: false,
-          $schema: 'http://json-schema.org/draft-07/schema#',
+          type: {
+            type: 'string',
+            const: 'cmd.weather.fetch',
+            description: 'The topic of the event',
+          },
+          source: {
+            type: 'string',
+            description: 'The source of the event',
+          },
+          data: {
+            type: 'object',
+            properties: {
+              date: {
+                type: 'string',
+                format: 'date-time',
+              },
+            },
+            required: ['date'],
+            additionalProperties: false,
+          },
+          datacontenttype: {
+            type: 'string',
+            const: 'application/json',
+            description:
+              "Must be either 'application/json' or 'application/json; charset=utf-8'",
+          },
         },
+        required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
+        additionalProperties: false,
+        description: 'The event which can be accepted by this handler',
+        $schema: 'http://json-schema.org/draft-07/schema#',
       },
       emits: [
         {
-          type: 'evt.weather.fetch.success',
-          schema: {
-            type: 'object',
-            properties: {
-              status: {
-                type: 'number',
-              },
-              weather: {
-                type: 'object',
-                properties: {
-                  temperature: {
-                    type: 'number',
-                  },
-                  unit: {
-                    type: 'string',
-                  },
+          type: 'object',
+          properties: {
+            subject: {
+              type: 'string',
+              description: 'The subject of the event',
+            },
+            type: {
+              type: 'string',
+              const: 'evt.weather.fetch.success',
+              description: 'The topic of the event',
+            },
+            source: {
+              type: 'string',
+              description: 'The source of the event',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'number',
                 },
-                required: ['temperature', 'unit'],
-                additionalProperties: false,
+                weather: {
+                  type: 'object',
+                  properties: {
+                    temperature: {
+                      type: 'number',
+                    },
+                    unit: {
+                      type: 'string',
+                    },
+                  },
+                  required: ['temperature', 'unit'],
+                  additionalProperties: false,
+                },
               },
+              required: ['status', 'weather'],
+              additionalProperties: false,
             },
-            required: ['status', 'weather'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+            datacontenttype: {
+              type: 'string',
+              const: 'application/json',
+              description:
+                "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            },
           },
+          required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
+          additionalProperties: false,
+          description: 'The event which can be accepted by this handler',
+          $schema: 'http://json-schema.org/draft-07/schema#',
         },
         {
-          type: 'evt.weather.fetch.error',
-          schema: {
-            type: 'object',
-            properties: {
-              status: {
-                type: 'number',
-              },
-              error: {
-                type: 'string',
-              },
+          type: 'object',
+          properties: {
+            subject: {
+              type: 'string',
+              description: 'The subject of the event',
             },
-            required: ['status', 'error'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
+            type: {
+              type: 'string',
+              const: 'evt.weather.fetch.error',
+              description: 'The topic of the event',
+            },
+            source: {
+              type: 'string',
+              description: 'The source of the event',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                status: {
+                  type: 'number',
+                },
+                error: {
+                  type: 'string',
+                },
+              },
+              required: ['status', 'error'],
+              additionalProperties: false,
+            },
+            datacontenttype: {
+              type: 'string',
+              const: 'application/json',
+              description:
+                "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            },
           },
+          required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
+          additionalProperties: false,
+          description: 'The event which can be accepted by this handler',
+          $schema: 'http://json-schema.org/draft-07/schema#',
         },
         {
-          type: 'sys.weather.fetch.error',
+          type: 'object',
+          properties: {
+            subject: {
+              type: 'string',
+              description: 'The subject of the event',
+            },
+            type: {
+              type: 'string',
+              const: 'sys.weather.fetch.error',
+              description: 'The topic of the event',
+            },
+            source: {
+              type: 'string',
+              description: 'The source of the event',
+            },
+            data: {
+              type: 'object',
+              properties: {
+                errorName: {
+                  type: 'string',
+                  description: 'The name of the error',
+                },
+                errorMessage: {
+                  type: 'string',
+                  description: 'The message of the error',
+                },
+                errorStack: {
+                  type: 'string',
+                  description: 'The stack of the error',
+                },
+                event: {
+                  type: 'string',
+                  description: 'The event which caused the error',
+                },
+                additional: {
+                  description: 'The error additional error data',
+                },
+              },
+              required: ['event'],
+              additionalProperties: false,
+            },
+            datacontenttype: {
+              type: 'string',
+              const: 'application/json',
+              description:
+                "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            },
+          },
+          required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
+          additionalProperties: false,
           description:
             "Event raised when error happens while using 'safeCloudevent' method",
-          schema: {
-            type: 'object',
-            properties: {
-              errorName: {
-                type: 'string',
-              },
-              errorMessage: {
-                type: 'string',
-              },
-              errorStack: {
-                type: 'string',
-              },
-              event: {
-                type: 'string',
-              },
-              additional: {},
-            },
-            required: ['event'],
-            additionalProperties: false,
-            $schema: 'http://json-schema.org/draft-07/schema#',
-          },
+          $schema: 'http://json-schema.org/draft-07/schema#',
         },
       ],
     };

@@ -27,6 +27,7 @@ yarn add xorca-cloudevent-router
 The `CloudEventHandler` class facilitates the creation of an asynchronous handler for CloudEvents, providing a structured approach for defining input and output schemas for handlers. This ensures that the specified schema is adhered to during event processing. Additionally, the handler enforces validation checks on crucial CloudEvent fields, ensuring a seamless transition of the subject from the input to the output. This is particularly significant in the orchestration pattern recommended by xOrca.
 
 #### Features:
+
 - **Schema Definition:** Allows the definition of input and output schemas for handlers, enhancing clarity and consistency in event processing.
 
 - **Validation Checks:** Enforces validation checks on CloudEvent fields, ensuring that essential properties are present.
@@ -36,21 +37,23 @@ The `CloudEventHandler` class facilitates the creation of an asynchronous handle
 - **Documentation:** Provides a function to output the handler schema in JSON format via `getInterface()` method.
 
 #### CloudEvent Schema Example:
+
 ```json
 {
-    "subject": "some string",
-    "datacontenttype": "application/json",
-    "source": "some string",
-    "type": "the name/topic of the event, e.g., cmd.books.fetch or evt.books.fetch.success",
-    "data": {
-        "example": "Data must be a JSON object with the required information."
-    }
+  "subject": "some string",
+  "datacontenttype": "application/json",
+  "source": "some string",
+  "type": "the name/topic of the event, e.g., cmd.books.fetch or evt.books.fetch.success",
+  "data": {
+    "example": "Data must be a JSON object with the required information."
+  }
 }
 ```
 
 The provided CloudEvent serves as a demonstration of the required schema, highlighting the essential fields and their expected formats. This structured approach ensures the consistent handling and validation of CloudEvents within the defined event processing framework.
 
 #### Example
+
 ```typescript
 import * as zod from 'zod'
 import { CloudEventHandler } from 'path/to/package'
@@ -66,7 +69,7 @@ const handler = new CloudEventHandler({
          * data field of the CloudEvent other validations, etc. are
          * taken care of by the class itself
          */
-        type: "cmd.books.fetch" 
+        type: "cmd.books.fetch"
         zodSchema: zod.object({
             bookId: zod.string().describe("The ID of the book to fetch"),
         })
@@ -148,55 +151,61 @@ The `createSimpleHandler` function is a factory function designed for the stream
 - **Timeout:** Allows to add a timeout to the handler. If the timeout is hit then the handler return a timeout event.
 
 #### Example:
+
 ```typescript
-import * as zod from 'zod'
-import { createSimpleHandler } from 'path/to/package'
+import * as zod from 'zod';
+import { createSimpleHandler } from 'path/to/package';
 import { CloudEvent } from 'cloudevents';
 
 const mySimpleHandler = createSimpleHandler({
-    /**
-     * The name MUST BE intentionally defined as 'books.fetch', serving 
-     * as the foundation for the events the handler listens to or emits.
-     * In this context, the handler listens to 'cmd.books.fetch' and 
-     * emits events such as 'evt.books.fetch.success', 
-     * 'evt.books.fetch.error', 'evt.books.fetch.timeout', or 
-     * 'sys.books.fetch.error'.
-     */
-    name: 'books.fetch',  
-    description: 'Handles a simple command and its events',
-    accepts: zod.object({
-        bookId: zod.string().describe("The ID of the book to fetch"),
-    }),
-    emits: zod.object({
-        bookId: zod.string().describe("The ID of the book to fetch"),
-        bookContent: zod.string().array().describe("The pages are array of strings"),
-    }),
-    handler: async (data) => {
-        const bookId = data.bookId
-        let bookContent = ["string", "string"]
-        // Process the command data and return the result
-        return { 
-            bookId,
-            bookContent,
-        };
-    },
-    timeoutMs: 5000, // Optional timeout in milliseconds
+  /**
+   * The name MUST BE intentionally defined as 'books.fetch', serving
+   * as the foundation for the events the handler listens to or emits.
+   * In this context, the handler listens to 'cmd.books.fetch' and
+   * emits events such as 'evt.books.fetch.success',
+   * 'evt.books.fetch.error', 'evt.books.fetch.timeout', or
+   * 'sys.books.fetch.error'.
+   */
+  name: 'books.fetch',
+  description: 'Handles a simple command and its events',
+  accepts: zod.object({
+    bookId: zod.string().describe('The ID of the book to fetch'),
+  }),
+  emits: zod.object({
+    bookId: zod.string().describe('The ID of the book to fetch'),
+    bookContent: zod
+      .string()
+      .array()
+      .describe('The pages are array of strings'),
+  }),
+  handler: async (data) => {
+    const bookId = data.bookId;
+    let bookContent = ['string', 'string'];
+    // Process the command data and return the result
+    return {
+      bookId,
+      bookContent,
+    };
+  },
+  timeoutMs: 5000, // Optional timeout in milliseconds
 });
 
 // Usage similar to 'CloudEventHandler'
 const {
-    success, // Indicates if the handler executed without errors
-    error, // Error object if success is false
-    eventToEmit, // The CloudEvent to emit. If success=false, type='sys.books.fetch.error'
-} = await mySimpleHandler.safeCloudevent(new CloudEvent({
+  success, // Indicates if the handler executed without errors
+  error, // Error object if success is false
+  eventToEmit, // The CloudEvent to emit. If success=false, type='sys.books.fetch.error'
+} = await mySimpleHandler.safeCloudevent(
+  new CloudEvent({
     type: 'cmd.books.fetch',
     data: {
-        bookId: "1234.pdf",
+      bookId: '1234.pdf',
     },
-    datacontenttype: "application/json",
-    subject: "subject_string",
-    source: "/test",
-}))
+    datacontenttype: 'application/json',
+    subject: 'subject_string',
+    source: '/test',
+  }),
+);
 ```
 
 This function provides a clear and efficient approach for handling CloudEvents in scenarios where the primary focus is on successful outcomes, making it a valuable tool for developers aiming to streamline their event-handling logic.
@@ -222,6 +231,7 @@ The `CloudEventRouter` class efficiently manages multiple `CloudEventHandler` in
 - **Global Timeout Handling:** Allows for a global timeout configuration, ensuring that all handlers are executed within the specified timeframe. In the event of a timeout, the router returns a log entry for the timed-out event, offering flexibility in handling timeout scenarios.
 
 #### Example:
+
 ```typescript
 import { CloudEventRouter, createSimpleHandler } from 'path/to/package';
 import { CloudEvent } from 'cloudevents';
@@ -230,14 +240,14 @@ const myCloudEventRouter = new CloudEventRouter({
     name: "Router",
     description: "Some router"
     handlers: [
-        createSimpleHandler(/* ... */), 
+        createSimpleHandler(/* ... */),
         new CloudEventHandler(/* ... */),
     ]
 });
 
 // Process an array of CloudEvents
 const results = await myCloudEventRouter.cloudevents(
-    [event1, event2, ...], 
+    [event1, event2, ...],
     true, /* return an error log in case the event handler is not found */
     900 * 1000, /* router timeout */
 );

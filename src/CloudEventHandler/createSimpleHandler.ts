@@ -3,7 +3,6 @@ import CloudEventHandler from '.';
 import { ICreateAyncCloudEventHandler } from './types';
 import { timedPromise } from '../utils';
 
-
 /**
  * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
  * @param params - Parameters for configuring the CloudEventHandler.

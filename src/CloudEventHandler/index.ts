@@ -188,6 +188,30 @@ export default class CloudEventHandler<
     }
   }
 
+  private makeEventSchema(
+    type: string,
+    data: zod.ZodObject<any>,
+    description?: string,
+  ) {
+    return zodToJsonSchema(
+      zod
+        .object({
+          subject: zod.string().describe('The subject of the event'),
+          type: zod.literal(type).describe('The topic of the event'),
+          source: zod.string().describe('The source of the event'),
+          data: data,
+          datacontenttype: zod
+            .literal('application/json')
+            .describe(
+              "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            ),
+        })
+        .describe(
+          description || 'The event which can be accepted by this handler',
+        ),
+    );
+  }
+
   /**
    * Gets an interface representing the CloudEventHandler configuration.
    * @returns An object representing the CloudEventHandler interface.
@@ -201,30 +225,36 @@ export default class CloudEventHandler<
     return {
       name: this.params.name,
       description: this.params.description,
-      accepts: {
-        type: this.params.accepts.type,
-        description: this.params.accepts.description,
-        schema: zodToJsonSchema(this.params.accepts.zodSchema),
-      },
+      accepts: this.makeEventSchema(
+        this.params.accepts.type,
+        this.params.accepts.zodSchema,
+        this.params.accepts.description,
+      ),
       emits: [
-        ...this.params.emits,
-        {
-          type: `sys.${this.params.name}.error`,
-          description:
-            "Event raised when error happens while using 'safeCloudevent' method",
-          zodSchema: zod.object({
-            errorName: zod.string().optional(),
-            errorMessage: zod.string().optional(),
-            errorStack: zod.string().optional(),
-            event: zod.string(),
-            additional: zod.any(),
+        ...this.params.emits.map((item) =>
+          this.makeEventSchema(item.type, item.zodSchema, item.description),
+        ),
+        this.makeEventSchema(
+          `sys.${this.params.name}.error`,
+          zod.object({
+            errorName: zod
+              .string()
+              .optional()
+              .describe('The name of the error'),
+            errorMessage: zod
+              .string()
+              .optional()
+              .describe('The message of the error'),
+            errorStack: zod
+              .string()
+              .optional()
+              .describe('The stack of the error'),
+            event: zod.string().describe('The event which caused the error'),
+            additional: zod.any().describe('The error additional error data'),
           }),
-        },
-      ].map((item) => ({
-        type: item.type,
-        description: item.description,
-        schema: zodToJsonSchema(item.zodSchema),
-      })),
+          "Event raised when error happens while using 'safeCloudevent' method",
+        ),
+      ],
     };
   }
 
