@@ -1,7 +1,11 @@
 import * as zod from 'zod';
 import CloudEventHandler from '.';
-import { ICreateAyncCloudEventHandler } from './types';
-import { timedPromise } from '../utils';
+import { ICreateSimpleCloudEventHandler } from './types';
+import {
+  containsDoubleCurlyBraces,
+  formatTemplate,
+  timedPromise,
+} from '../utils';
 
 /**
  * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
@@ -22,7 +26,7 @@ import { timedPromise } from '../utils';
  * });
  */
 export default function createSimpleHandler<TName extends string>(
-  params: ICreateAyncCloudEventHandler<TName>,
+  params: ICreateSimpleCloudEventHandler<TName>,
 ) {
   return new CloudEventHandler<
     `cmd.${TName}`,
@@ -75,18 +79,18 @@ export default function createSimpleHandler<TName extends string>(
         }),
       },
     ],
-    handler: async ({ type, data }) => {
+    handler: async ({ type, data, params: topicParams }) => {
       const timeoutMs = params.timeoutMs || 10000;
       try {
         return await timedPromise(async () => {
           try {
             return {
-              type: `evt.${params.name}.success` as `evt.${TName}.success`,
+              type: `evt.${formatTemplate(params.name, topicParams)}.success` as `evt.${TName}.success`,
               data: await params.handler(data),
             };
           } catch (error) {
             return {
-              type: `evt.${params.name}.error` as `evt.${TName}.error`,
+              type: `evt.${formatTemplate(params.name, topicParams)}.error` as `evt.${TName}.error`,
               data: {
                 errorName: (error as Error)?.name,
                 errorMessage: (error as Error)?.message,
@@ -97,7 +101,7 @@ export default function createSimpleHandler<TName extends string>(
         }, timeoutMs)();
       } catch (err) {
         return {
-          type: `evt.${params.name}.timeout` as `evt.${TName}.timeout`,
+          type: `evt.${formatTemplate(params.name, topicParams)}.timeout` as `evt.${TName}.timeout`,
           data: {
             timeout: timeoutMs,
             errorName: (err as Error)?.name,

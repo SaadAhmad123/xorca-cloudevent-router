@@ -58,7 +58,12 @@ export interface ICloudEventHandler<
   /**
    * The handler function that processes the CloudEvent and returns a new CloudEvent.
    * @template TEventData - The type of data in the CloudEvent.
-   * @param event - The CloudEvent to be handled.
+   * @param event - The event data to handle
+   * @param event.type - The type of the event.
+   * @param event.data - The data of the event.
+   * @param event.params - A dictionary object containing the type parameter. e.g. if the
+   *                       handler accepts type `cmd.{{resource}}.fetch` then params will be
+   *                       {resource: 'book'} for the input type 'cmd.books.fetch'
    * @returns A Promise resolving to the emitted CloudEvent.
    * @example
    * const handler: ICloudEventHandler<'UserCreated', 'UserUpdated'> = {
@@ -67,6 +72,7 @@ export interface ICloudEventHandler<
    *   emits: [{ type: 'UserUpdated', data: zod.object({ id: zod.string(), name: zod.string() }) }],
    *   handler: async (event) => {
    *     // Process the 'UserCreated' event and return an 'UserUpdated' event.
+   *     const {type, data, params} = event
    *     return { type: 'UserUpdated', data: { id: event.data.id, name: event.data.name } };
    *   },
    * };
@@ -76,10 +82,11 @@ export interface ICloudEventHandler<
   >(event: {
     type: TAcceptType;
     data: TEventData;
+    params?: Record<string, string>;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
 }
 
-export interface ICreateAyncCloudEventHandler<TName extends string> {
+export interface ICreateSimpleCloudEventHandler<TName extends string> {
   name: TName;
   description?: string;
   accepts: zod.ZodObject<any>;

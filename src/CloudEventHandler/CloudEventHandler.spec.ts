@@ -4,10 +4,10 @@ import { CloudEvent } from 'cloudevents';
 
 describe('CloudEventHandler Spec', () => {
   const params = {
-    name: 'weather.fetch',
+    name: '{{resource}}.fetch',
     description: 'It fetches the weather data from opensource',
     accepts: {
-      type: 'cmd.weather.fetch',
+      type: 'cmd.{{resource}}.fetch',
       zodSchema: zod.object({
         date: zod.date(),
       }),
@@ -47,7 +47,7 @@ describe('CloudEventHandler Spec', () => {
 
   it('Should throw error if the invalid event type is provided', async () => {
     const handler = new CloudEventHandler(params);
-    expect(handler.topic).toBe('cmd.weather.fetch');
+    expect(handler.topic).toBe('cmd.{{resource}}.fetch');
 
     let error: Error | undefined;
     try {
@@ -70,7 +70,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       '[CloudEventHandler][cloudevent] The subject MUST be provided.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
       new CloudEvent({
@@ -83,7 +83,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       '[CloudEventHandler][cloudevent] The data MUST be provided.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
       new CloudEvent({
@@ -97,7 +97,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       '[CloudEventHandler][cloudevent] The datacontenttype MUST be provided.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
       new CloudEvent({
@@ -112,7 +112,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/json' but the provided is application",
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
       new CloudEvent({
@@ -125,9 +125,9 @@ describe('CloudEventHandler Spec', () => {
     );
     expect(resp.success).toBe(false);
     expect(resp.error?.message).toBe(
-      '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.weather.fetch but the provided is evt.handler.',
+      '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.{{resource}}.fetch but the provided is evt.handler.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
       new CloudEvent({
@@ -141,9 +141,9 @@ describe('CloudEventHandler Spec', () => {
 
     expect(resp.success).toBe(false);
     expect(resp.error?.message).toBe(
-      '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.weather.fetch expected data shape',
+      '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.{{resource}}.fetch expected data shape',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
       new CloudEvent({
@@ -184,7 +184,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     handler = new CloudEventHandler({
       ...params,
@@ -198,7 +198,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     handler = new CloudEventHandler({
       ...params,
@@ -231,12 +231,12 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.error?.message).toBe(
       '[CloudEventHandler][cloudevent][handler] Handler errored (message=some error)',
     );
-    expect(resp.eventToEmit.type).toBe('sys.weather.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
   });
 
   it('should return a interface with input and output schemas', () => {
     const expectedSchema = {
-      name: 'weather.fetch',
+      name: '{{resource}}.fetch',
       description: 'It fetches the weather data from opensource',
       accepts: {
         type: 'object',
@@ -247,11 +247,12 @@ describe('CloudEventHandler Spec', () => {
           },
           type: {
             type: 'string',
-            const: 'cmd.weather.fetch',
+            const: 'cmd.{{resource}}.fetch',
             description: 'The topic of the event',
           },
           source: {
             type: 'string',
+            const: '%7B%7Bresource%7D%7D.fetch',
             description: 'The source of the event',
           },
           data: {
@@ -292,6 +293,7 @@ describe('CloudEventHandler Spec', () => {
             },
             source: {
               type: 'string',
+              const: '%7B%7Bresource%7D%7D.fetch',
               description: 'The source of the event',
             },
             data: {
@@ -343,6 +345,7 @@ describe('CloudEventHandler Spec', () => {
             },
             source: {
               type: 'string',
+              const: '%7B%7Bresource%7D%7D.fetch',
               description: 'The source of the event',
             },
             data: {
@@ -379,11 +382,12 @@ describe('CloudEventHandler Spec', () => {
             },
             type: {
               type: 'string',
-              const: 'sys.weather.fetch.error',
+              const: 'sys.{{resource}}.fetch.error',
               description: 'The topic of the event',
             },
             source: {
               type: 'string',
+              const: '%7B%7Bresource%7D%7D.fetch',
               description: 'The source of the event',
             },
             data: {

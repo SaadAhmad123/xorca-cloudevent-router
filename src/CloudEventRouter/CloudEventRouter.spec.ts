@@ -6,7 +6,7 @@ import { CloudEvent } from 'cloudevents';
 import createSimpleHandler from '../CloudEventHandler/createSimpleHandler';
 
 const bookFetchHandler = createSimpleHandler({
-  name: 'books.fetch',
+  name: '{{resource}}.fetch',
   accepts: zod.object({
     book_id: zod.string(),
   }),
@@ -78,7 +78,6 @@ describe('CloudEventRouter spec', () => {
         datacontenttype: 'application/json',
       }),
     ]);
-
     expect(resp.length).toBe(2);
     expect(resp.filter((item) => item.success === true).length).toBe(2);
     expect(
@@ -119,7 +118,7 @@ describe('CloudEventRouter spec', () => {
       resp.filter(
         (item) =>
           item.errorMessage ===
-          'CloudEventRouterError: [CloudEventRouter][cloudevents] No handler found for event.type=evt.books.fetch',
+          'CloudEventRouterError: [CloudEventRouter][cloudevents] No handler found for event.type=evt.books.fetch. The accepts type are: cmd.gpt.summary, cmd.{{resource}}.fetch',
       ).length,
     ).toBe(1);
   });
@@ -254,7 +253,7 @@ describe('CloudEventRouter spec', () => {
       name: 'SummaryRouter',
       handlers: [
         {
-          name: 'books.fetch',
+          name: '{{resource}}.fetch',
           accepts: {
             type: 'object',
             properties: {
@@ -264,11 +263,12 @@ describe('CloudEventRouter spec', () => {
               },
               type: {
                 type: 'string',
-                const: 'cmd.books.fetch',
+                const: 'cmd.{{resource}}.fetch',
                 description: 'The topic of the event',
               },
               source: {
                 type: 'string',
+                const: '%7B%7Bresource%7D%7D.fetch',
                 description: 'The source of the event',
               },
               data: {
@@ -303,11 +303,12 @@ describe('CloudEventRouter spec', () => {
                 },
                 type: {
                   type: 'string',
-                  const: 'evt.books.fetch.success',
+                  const: 'evt.{{resource}}.fetch.success',
                   description: 'The topic of the event',
                 },
                 source: {
                   type: 'string',
+                  const: '%7B%7Bresource%7D%7D.fetch',
                   description: 'The source of the event',
                 },
                 data: {
@@ -353,11 +354,12 @@ describe('CloudEventRouter spec', () => {
                 },
                 type: {
                   type: 'string',
-                  const: 'evt.books.fetch.error',
+                  const: 'evt.{{resource}}.fetch.error',
                   description: 'The topic of the event',
                 },
                 source: {
                   type: 'string',
+                  const: '%7B%7Bresource%7D%7D.fetch',
                   description: 'The source of the event',
                 },
                 data: {
@@ -405,11 +407,12 @@ describe('CloudEventRouter spec', () => {
                 },
                 type: {
                   type: 'string',
-                  const: 'evt.books.fetch.timeout',
+                  const: 'evt.{{resource}}.fetch.timeout',
                   description: 'The topic of the event',
                 },
                 source: {
                   type: 'string',
+                  const: '%7B%7Bresource%7D%7D.fetch',
                   description: 'The source of the event',
                 },
                 data: {
@@ -466,11 +469,12 @@ describe('CloudEventRouter spec', () => {
                 },
                 type: {
                   type: 'string',
-                  const: 'sys.books.fetch.error',
+                  const: 'sys.{{resource}}.fetch.error',
                   description: 'The topic of the event',
                 },
                 source: {
                   type: 'string',
+                  const: '%7B%7Bresource%7D%7D.fetch',
                   description: 'The source of the event',
                 },
                 data: {
@@ -536,6 +540,7 @@ describe('CloudEventRouter spec', () => {
               },
               source: {
                 type: 'string',
+                const: 'gpt.summary',
                 description: 'The source of the event',
               },
               data: {
@@ -575,6 +580,7 @@ describe('CloudEventRouter spec', () => {
                 },
                 source: {
                   type: 'string',
+                  const: 'gpt.summary',
                   description: 'The source of the event',
                 },
                 data: {
@@ -619,6 +625,7 @@ describe('CloudEventRouter spec', () => {
                 },
                 source: {
                   type: 'string',
+                  const: 'gpt.summary',
                   description: 'The source of the event',
                 },
                 data: {
@@ -663,6 +670,7 @@ describe('CloudEventRouter spec', () => {
                 },
                 source: {
                   type: 'string',
+                  const: 'gpt.summary',
                   description: 'The source of the event',
                 },
                 data: {

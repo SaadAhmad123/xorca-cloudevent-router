@@ -3,6 +3,7 @@ import { CloudEvent } from 'cloudevents';
 import { ICloudEventHandler } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { formatTemplate, matchStringTemplate } from '../utils';
 
 /**
  * Represents a CloudEventHandler that processes CloudEvents. This class
@@ -109,7 +110,8 @@ export default class CloudEventHandler<
         event,
       );
     }
-    if (this.params.accepts.type !== type) {
+    const matchResp = matchStringTemplate(type, this.params.accepts.type);
+    if (!matchResp.matched) {
       throw new CloudEventHandlerError(
         `[CloudEventHandler][cloudevent] The handler only accepts type=${this.params.accepts.type} but the provided is ${type}.`,
         event,
@@ -136,6 +138,7 @@ export default class CloudEventHandler<
       resp = await this.params.handler({
         type: type as TAcceptType,
         data: data || {},
+        params: matchResp.result,
       });
     } catch (e) {
       throw new CloudEventHandlerError(
@@ -148,7 +151,7 @@ export default class CloudEventHandler<
     }
 
     const respEvent = this.params.emits.filter(
-      (item) => item.type === resp.type,
+      (item) => matchStringTemplate(resp.type, item.type).matched,
     );
 
     if (!respEvent.length) {
@@ -176,7 +179,7 @@ export default class CloudEventHandler<
       ...resp,
       datacontenttype,
       subject,
-      source: this.params.name || this.topic,
+      source: encodeURIComponent(this.params.name || this.topic),
     });
   }
 
@@ -201,7 +204,7 @@ export default class CloudEventHandler<
         success: false,
         error: e as CloudEventHandlerError,
         eventToEmit: new CloudEvent({
-          source: this.params.name || this.topic,
+          source: encodeURIComponent(this.params.name || this.topic),
           type: `sys.${this.params.name}.error`,
           subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
           data: {
@@ -227,7 +230,9 @@ export default class CloudEventHandler<
         .object({
           subject: zod.string().describe('The subject of the event'),
           type: zod.literal(type).describe('The topic of the event'),
-          source: zod.string().describe('The source of the event'),
+          source: zod
+            .literal(encodeURIComponent(this.params.name || this.topic))
+            .describe('The source of the event'),
           data: data,
           datacontenttype: zod
             .literal('application/json')

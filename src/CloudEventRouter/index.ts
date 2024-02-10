@@ -1,7 +1,7 @@
 import CloudEventHandler from '../CloudEventHandler';
 import { CloudEvent } from 'cloudevents';
 import { CloudEventRouterError } from './errors';
-import { timedPromise } from '../utils';
+import { matchTemplates, timedPromise } from '../utils';
 import { ICloudEventRouter } from './types';
 import zodToJsonSchema from 'zod-to-json-schema';
 import * as zod from 'zod';
@@ -50,13 +50,15 @@ export default class CloudEventRouter {
     errorOnNotFound: boolean = true,
     timeoutMs: number = 900000,
   ) {
+    const handlerKeys = Object.keys(this.handlerMap || {});
     return (
       await Promise.all(
         events.map(async (item) => {
-          if (!this.handlerMap[item.type]) {
+          const matchTemplateResp = matchTemplates(item.type, handlerKeys);
+          if (!matchTemplateResp) {
             if (!errorOnNotFound) return undefined;
             const error = new CloudEventRouterError(
-              `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}`,
+              `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}. The accepts type are: ${handlerKeys.join(', ')}`,
             );
             return {
               event: item,
@@ -69,7 +71,10 @@ export default class CloudEventRouter {
           }
           try {
             const resp = await timedPromise(
-              () => this.handlerMap[item.type].safeCloudevent(item),
+              () =>
+                this.handlerMap[
+                  matchTemplateResp.matchedTemplate
+                ].safeCloudevent(item),
               timeoutMs,
             )();
             return {
