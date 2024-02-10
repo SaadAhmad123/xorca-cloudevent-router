@@ -146,7 +146,7 @@ export default class CloudEventRouter {
       asyncapi: '3.0.0',
       info: {
         title: this.params.name,
-        describe: this.params.description,
+        description: this.params.description,
         version: '1.0.0',
       },
       defaultContentType: 'application/json',
