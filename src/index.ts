@@ -6,7 +6,7 @@ import {
 } from './CloudEventHandler/types';
 
 import createSimpleHandler from './CloudEventHandler/createSimpleHandler';
-
+import createHttpHandler from './CloudEventHandler/createHttpHandler';
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
@@ -19,6 +19,7 @@ export {
   CloudEventRouterError,
   PromiseTimeoutError,
   createSimpleHandler,
+  createHttpHandler,
   timedPromise,
   CloudEventValidationSchema,
   ICloudEventHandler,

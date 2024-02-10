@@ -26,10 +26,10 @@ export class PromiseTimeoutError extends Error {
  * const result = await wrappedPromise(42, 500); // Resolves successfully after 500ms.
  * ```
  */
-export function timedPromise<T, U extends any[]>(
+export const timedPromise = <T, U extends any[]>(
   promise: (...args: U) => Promise<T>,
   timeoutMs: number,
-) {
+) => {
   return async (...args: U) => {
     let timeoutHandler: any;
 
@@ -47,7 +47,7 @@ export function timedPromise<T, U extends any[]>(
     clearTimeout(timeoutHandler);
     return resp;
   };
-}
+};
 
 /**
  * Checks if a string contains both opening and closing double curly braces.

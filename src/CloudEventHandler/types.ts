@@ -86,12 +86,40 @@ export interface ICloudEventHandler<
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
 }
 
+/**
+ * Interface for creating a simple CloudEventHandler for asynchronous commands and their corresponding events.
+ * @template TName - The name type for the CloudEventHandler.
+ */
 export interface ICreateSimpleCloudEventHandler<TName extends string> {
   name: TName;
   description?: string;
   accepts: zod.ZodObject<any>;
   emits: zod.ZodObject<any>;
   handler: (data: Record<string, any>) => Promise<Record<string, any>>;
-  // Default = 10000ms
+  /**
+   * Timeout duration in milliseconds. Default is 10000ms.
+   */
+  timeoutMs?: number;
+}
+
+/**
+ * Type representing a variable with a value and an optional secret flag.
+ */
+export type VariableType = {
+  value: string;
+  secret?: boolean;
+};
+
+/**
+ * Interface for creating an HTTP-specific CloudEventHandler.
+ * @template TName - The name type for the CloudEventHandler.
+ */
+export interface ICreateHttpCloudEventHandler<TName extends string> {
+  name: TName;
+  description?: string;
+  variables?: Record<string, VariableType>;
+  /**
+   * Timeout duration in milliseconds. Default is 10000ms.
+   */
   timeoutMs?: number;
 }
