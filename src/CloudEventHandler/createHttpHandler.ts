@@ -29,6 +29,7 @@ class HttpError extends Error {
 export default function createHttpHandler<TName extends string>({
   name,
   description = 'A http request handler',
+  whitelistedUrls,
   variables = {},
   timeoutMs = 10000,
 }: ICreateHttpCloudEventHandler<TName>) {
@@ -59,7 +60,15 @@ export default function createHttpHandler<TName extends string>({
           'TRACE',
         ])
         .describe('All HTTP methods'),
-      url: zod.string().describe('The request URL'),
+      url: whitelistedUrls?.length
+        ? zod
+            .enum(whitelistedUrls as [string, ...string[]])
+            .describe('The allowed URLs')
+        : zod
+            .string()
+            .describe(
+              'Any request URL. Warning! This is not secure, please provide whitelistedUrls',
+            ),
       headers: zod
         .record(zod.string(), zod.string())
         .optional()

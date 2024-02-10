@@ -119,6 +119,11 @@ export interface ICreateHttpCloudEventHandler<TName extends string> {
   description?: string;
   variables?: Record<string, VariableType>;
   /**
+   * Restrict the handler to consider the whitelistedUrls only
+   * for better protection
+   */
+  whitelistedUrls?: string[];
+  /**
    * Timeout duration in milliseconds. Default is 10000ms.
    */
   timeoutMs?: number;
