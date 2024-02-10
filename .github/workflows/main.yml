@@ -21,6 +21,12 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
+      - name: Add .env file
+        run: |
+          echo "OPEN_AI_API_KEY=\"$OPEN_AI_API_KEY\"" >> ./.env
+        env:
+          OPEN_AI_API_KEY: ${{secrets.OPEN_AI_API_KEY}}
+
       - name: Test
         run: yarn test
 
