@@ -1,9 +1,9 @@
 import * as zod from 'zod';
-import CloudEventHandler from '../CloudEventHandler';
-import CloudEventRouter from '.';
+import CloudEventHandler from '../src/CloudEventHandler';
+import CloudEventRouter from '../src/CloudEventRouter';
 import { CloudEvent } from 'cloudevents';
 
-import createSimpleHandler from '../CloudEventHandler/createSimpleHandler';
+import createSimpleHandler from '../src/CloudEventHandler/createSimpleHandler';
 
 const bookFetchHandler = createSimpleHandler({
   name: '{{resource}}.fetch',

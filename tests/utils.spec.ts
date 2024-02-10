@@ -3,7 +3,7 @@ import {
   PromiseTimeoutError,
   matchStringTemplate,
   matchTemplates,
-} from './utils';
+} from '../src/utils';
 
 describe('Util specs', () => {
   it('should timeout if the promise takes longer than expected', async () => {

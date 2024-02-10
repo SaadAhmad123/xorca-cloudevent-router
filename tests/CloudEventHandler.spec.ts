@@ -1,5 +1,5 @@
 import * as zod from 'zod';
-import CloudEventHandler from '.';
+import CloudEventHandler from '../src/CloudEventHandler';
 import { CloudEvent } from 'cloudevents';
 
 describe('CloudEventHandler Spec', () => {

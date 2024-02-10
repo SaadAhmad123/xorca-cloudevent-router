@@ -11,7 +11,7 @@
     "resolveJsonModule": true,
   },
   "include": [
-    "src/**/*.ts", // Include all TypeScript files in the 'src' directory
+    "src/**/*.ts", "tests/utils.spec.ts", "tests/CloudEventRouter.spec.ts", "tests/createHttpHandler.spec.ts", "tests/CloudEventHandler.spec.ts", // Include all TypeScript files in the 'src' directory
   ],
   "exclude": [
     "node_modules", // your existing exclude pattern

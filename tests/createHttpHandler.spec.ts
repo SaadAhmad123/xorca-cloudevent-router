@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
-import createHttpHandler from './createHttpHandler';
+import createHttpHandler from '../src/CloudEventHandler/createHttpHandler';
 import { CloudEvent } from 'cloudevents';
 
 describe('createHttpHandler test', () => {
