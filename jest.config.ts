@@ -11,6 +11,6 @@ export default {
   testEnvironment: 'node',
   testMatch: ['**/*.spec.ts'],
   globals: {
-    fetch
-  }
+    fetch,
+  },
 };

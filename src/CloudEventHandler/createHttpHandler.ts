@@ -3,6 +3,13 @@ import createSimpleHandler from './createSimpleHandler';
 import { ICreateHttpCloudEventHandler } from './types';
 import * as zod from 'zod';
 
+class HttpError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'HttpError';
+  }
+}
+
 /**
  * Creates an HTTP CloudEventHandler for handling HTTP requests and responses.
  * @template TName - The name type for the CloudEventHandler.
@@ -65,6 +72,13 @@ export default function createHttpHandler<TName extends string>({
         .describe(
           'The request body in utf-8 string format. In case of "GET" this will be ignored. Pass the query parameters in the url string itself',
         ),
+      successStatusCodes: zod
+        .number()
+        .array()
+        .optional()
+        .describe(
+          '(default: [200, 201]). The success status codes to be considered. Otherwise, the error event will be generated with errorMessage = {statusCode: number, text: string <being the response in text format>}',
+        ),
     }),
     emits: zod.object({
       statusCode: zod.number().describe('The response status code'),
@@ -102,10 +116,21 @@ export default function createHttpHandler<TName extends string>({
             ? formatTemplate(data.body, templateVariables)
             : undefined,
       });
+      const successCodes = Array.from(
+        new Set<number>([200, 201, ...(data.successStatusCodes || [])]),
+      );
+      if (!successCodes.includes(resp.status)) {
+        throw new HttpError(
+          JSON.stringify({
+            statusCode: resp.status,
+            text: await resp.text().catch((err: Error) => err.message),
+          }),
+        );
+      }
       const secureHeaders = Object.assign(
         {},
         ...Object.entries(resp.headers).map(([key, value]) => ({
-          [key]: secretValues.includes(value?.toString?.() || "")
+          [key]: secretValues.includes(value?.toString?.() || '')
             ? '-- SECRET --'
             : value,
         })),
@@ -114,7 +139,7 @@ export default function createHttpHandler<TName extends string>({
         statusCode: resp.status,
         statusText: resp.statusText,
         headers: secureHeaders,
-        text: await resp.text(),
+        text: await resp.text().catch((err: Error) => err.message),
       };
     },
   });

@@ -81,9 +81,11 @@ describe('createHttpHandler test', () => {
       }),
     );
 
-    expect(resp.type).toBe('evt.ntk.openai.completion.success');
-    expect(resp?.data?.statusCode).toBe(401);
-    const parsedData = JSON.parse(resp?.data?.text || '{}');
+    expect(resp.type).toBe('evt.ntk.openai.completion.error');
+    expect(resp?.data?.errorName).toBe('HttpError');
+    const parsedErrorMessage = JSON.parse(resp?.data?.errorMessage || '{}');
+    const parsedData = JSON.parse(parsedErrorMessage.text || '{}');
+    expect(parsedErrorMessage.statusCode).toBe(401);
     expect(parsedData?.error?.message).toBe(
       "You didn't provide an API key. You need to provide your API key in an Authorization header using Bearer auth (i.e. Authorization: Bearer YOUR_KEY), or as the password field (with blank username) if you're accessing the API from your browser and are prompted for a username and password. You can obtain an API key from https://platform.openai.com/account/api-keys.",
     );
