@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import { formatTemplate } from '../utils';
 import createSimpleHandler from './createSimpleHandler';
 import { ICreateHttpCloudEventHandler } from './types';
@@ -106,7 +105,7 @@ export default function createHttpHandler<TName extends string>({
       const secureHeaders = Object.assign(
         {},
         ...Object.entries(resp.headers).map(([key, value]) => ({
-          [key]: secretValues.includes(value?.toString())
+          [key]: secretValues.includes(value?.toString?.() || "")
             ? '-- SECRET --'
             : value,
         })),
