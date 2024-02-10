@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { formatTemplate } from '../utils';
 import createSimpleHandler from './createSimpleHandler';
 import { ICreateHttpCloudEventHandler } from './types';
