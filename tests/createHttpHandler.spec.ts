@@ -43,7 +43,6 @@ describe('createHttpHandler test', () => {
         },
       }),
     );
-    console.log(JSON.stringify(resp, null, 2))
     expect(resp.type).toBe('evt.ntk.openai.completion.success');
     expect(resp?.data?.statusCode).toBe(200);
     const parsedData = JSON.parse(resp?.data?.text || '{}');
