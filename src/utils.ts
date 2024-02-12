@@ -1,3 +1,5 @@
+import { CloudEvent } from 'cloudevents';
+
 /**
  * Custom error class for representing a promise timeout.
  */

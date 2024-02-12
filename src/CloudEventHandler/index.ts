@@ -4,6 +4,8 @@ import { ICloudEventHandler } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { formatTemplate, matchStringTemplate } from '../utils';
+import { TraceContext } from '../openTelemetry/types';
+import TraceParent from '../openTelemetry/traceparent';
 
 /**
  * Represents a CloudEventHandler that processes CloudEvents. This class
@@ -88,6 +90,9 @@ export default class CloudEventHandler<
 
   /**
    * Processes the given CloudEvent and returns a new CloudEvent.
+   * This function also takes care of distributed tracing as described [here](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md),
+   * based on `traceparent` and `tracestate` in the CloudEvent.
+   *
    * @param event - The CloudEvent to be processed.
    * @returns A Promise resolving to the emitted CloudEvent.
    * @throws {CloudEventHandlerError} - Throws an error if required properties are missing or validation fails.
@@ -95,6 +100,9 @@ export default class CloudEventHandler<
   async cloudevent(
     event: CloudEvent<Record<string, any>>,
   ): Promise<CloudEvent<Record<string, any>>> {
+    const traceContext: TraceContext = TraceParent.parse(
+      event.traceparent as string | undefined,
+    );
     for (const prop of ['subject', 'type', 'data', 'datacontenttype']) {
       if (!event[prop]) {
         throw new CloudEventHandlerError(
@@ -130,7 +138,10 @@ export default class CloudEventHandler<
       );
     }
 
-    let resp: any = {
+    let resp: {
+      type: string;
+      data: Record<string, any>;
+    } = {
       type: '',
       data: {},
     };
@@ -180,6 +191,8 @@ export default class CloudEventHandler<
       datacontenttype,
       subject,
       source: encodeURIComponent(this.params.name || this.topic),
+      traceparent: TraceParent.create.traceparent(traceContext) || '',
+      tracestate: event.tracestate || '',
     });
   }
 
@@ -194,6 +207,9 @@ export default class CloudEventHandler<
     eventToEmit: CloudEvent<Record<string, any>>;
     error?: CloudEventHandlerError;
   }> {
+    const traceContext: TraceContext = TraceParent.parse(
+      event.traceparent as string | undefined,
+    );
     try {
       return {
         success: true,
@@ -202,7 +218,6 @@ export default class CloudEventHandler<
     } catch (e) {
       return {
         success: false,
-        error: e as CloudEventHandlerError,
         eventToEmit: new CloudEvent({
           source: encodeURIComponent(this.params.name || this.topic),
           type: `sys.${this.params.name}.error`,
@@ -215,6 +230,8 @@ export default class CloudEventHandler<
             event: (e as CloudEventHandlerError).event,
           },
           datacontenttype: 'application/json',
+          traceparent: TraceParent.create.traceparent(traceContext) || '',
+          tracestate: event.tracestate || '',
         }),
       };
     }
@@ -238,6 +255,23 @@ export default class CloudEventHandler<
             .literal('application/json')
             .describe(
               "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            ),
+          traceparent: zod
+            .string()
+            .regex(TraceParent.validationRegex)
+            .optional()
+            .describe(
+              [
+                'The traceparent header represents the incoming request in a tracing system in a common format.',
+                'See the W3C spec for the definition as per [CloudEvents Distributed Tracing ',
+                'Specification](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md).',
+              ].join(''),
+            ),
+          tracestate: zod
+            .string()
+            .optional()
+            .describe(
+              'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             ),
         })
         .describe(

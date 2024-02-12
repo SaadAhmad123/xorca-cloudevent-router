@@ -80,9 +80,6 @@ export default class CloudEventRouter {
             return {
               event: item,
               success: resp.success,
-              errorMessage: resp.error?.toString(),
-              errorStack: resp.error?.stack,
-              errorType: resp?.error?.name,
               eventToEmit: resp.eventToEmit,
             };
           } catch (error) {
@@ -92,7 +89,6 @@ export default class CloudEventRouter {
               errorMessage: `[CloudEventRouter][Timeout=${timeoutMs}]${error?.toString()}`,
               errorStack: (error as Error)?.stack,
               errorType: `[CloudEventRouter][Timeout]`,
-              eventToEmit: undefined,
             };
           }
         }),

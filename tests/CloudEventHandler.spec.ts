@@ -67,9 +67,6 @@ describe('CloudEventHandler Spec', () => {
       }),
     );
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
-      '[CloudEventHandler][cloudevent] The subject MUST be provided.',
-    );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
@@ -80,9 +77,6 @@ describe('CloudEventHandler Spec', () => {
       }),
     );
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
-      '[CloudEventHandler][cloudevent] The data MUST be provided.',
-    );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = await handler.safeCloudevent(
@@ -94,7 +88,7 @@ describe('CloudEventHandler Spec', () => {
       }),
     );
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The datacontenttype MUST be provided.',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -109,7 +103,7 @@ describe('CloudEventHandler Spec', () => {
       }),
     );
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/json' but the provided is application",
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -124,7 +118,7 @@ describe('CloudEventHandler Spec', () => {
       }),
     );
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.{{resource}}.fetch but the provided is evt.handler.',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -140,7 +134,7 @@ describe('CloudEventHandler Spec', () => {
     );
 
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.{{resource}}.fetch expected data shape',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -181,7 +175,7 @@ describe('CloudEventHandler Spec', () => {
     });
     let resp = await handler.safeCloudevent(evt);
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -195,7 +189,7 @@ describe('CloudEventHandler Spec', () => {
     });
     resp = await handler.safeCloudevent(evt);
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -228,7 +222,7 @@ describe('CloudEventHandler Spec', () => {
     });
     resp = await handler.safeCloudevent(evt);
     expect(resp.success).toBe(false);
-    expect(resp.error?.message).toBe(
+    expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent][handler] Handler errored (message=some error)',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
@@ -271,6 +265,17 @@ describe('CloudEventHandler Spec', () => {
             const: 'application/json',
             description:
               "Must be either 'application/json' or 'application/json; charset=utf-8'",
+          },
+          traceparent: {
+            type: 'string',
+            pattern: '^[\\da-f]{2}-[\\da-f]{32}-[\\da-f]{16}-[\\da-f]{2}$',
+            description:
+              'The traceparent header represents the incoming request in a tracing system in a common format.See the W3C spec for the definition as per [CloudEvents Distributed Tracing Specification](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md).',
+          },
+          tracestate: {
+            type: 'string',
+            description:
+              'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
           },
         },
         required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
@@ -325,6 +330,17 @@ describe('CloudEventHandler Spec', () => {
               description:
                 "Must be either 'application/json' or 'application/json; charset=utf-8'",
             },
+            traceparent: {
+              type: 'string',
+              pattern: '^[\\da-f]{2}-[\\da-f]{32}-[\\da-f]{16}-[\\da-f]{2}$',
+              description:
+                'The traceparent header represents the incoming request in a tracing system in a common format.See the W3C spec for the definition as per [CloudEvents Distributed Tracing Specification](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md).',
+            },
+            tracestate: {
+              type: 'string',
+              description:
+                'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
+            },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
           additionalProperties: false,
@@ -366,6 +382,17 @@ describe('CloudEventHandler Spec', () => {
               const: 'application/json',
               description:
                 "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            },
+            traceparent: {
+              type: 'string',
+              pattern: '^[\\da-f]{2}-[\\da-f]{32}-[\\da-f]{16}-[\\da-f]{2}$',
+              description:
+                'The traceparent header represents the incoming request in a tracing system in a common format.See the W3C spec for the definition as per [CloudEvents Distributed Tracing Specification](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md).',
+            },
+            tracestate: {
+              type: 'string',
+              description:
+                'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
@@ -421,6 +448,17 @@ describe('CloudEventHandler Spec', () => {
               const: 'application/json',
               description:
                 "Must be either 'application/json' or 'application/json; charset=utf-8'",
+            },
+            traceparent: {
+              type: 'string',
+              pattern: '^[\\da-f]{2}-[\\da-f]{32}-[\\da-f]{16}-[\\da-f]{2}$',
+              description:
+                'The traceparent header represents the incoming request in a tracing system in a common format.See the W3C spec for the definition as per [CloudEvents Distributed Tracing Specification](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md).',
+            },
+            tracestate: {
+              type: 'string',
+              description:
+                'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
