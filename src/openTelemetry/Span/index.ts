@@ -109,16 +109,26 @@ export default class Span {
    */
   constructor(params: {
     name: string;
-    kind: SpanKind;
     context: SpanContext;
+    kind?: SpanKind;
     parentId?: string;
     exporter?: SpanExporter;
   }) {
     this.name = params.name;
-    this.kind = params.kind;
+    this.kind = params.kind || SpanKind.CONSUMER;
     this.context = params.context;
     this.parentId = params.parentId;
     this.exporter = params.exporter;
+  }
+
+  /**
+   * Set the span kind
+   * @param kind - The kind of the span
+   * @returns
+   */
+  setSpanKind(kind: SpanKind) {
+    this.kind = kind;
+    return this;
   }
 
   /**
@@ -141,6 +151,16 @@ export default class Span {
       code: SpanStatusCode.OK,
     };
     this.ended = false;
+    return this;
+  }
+
+  /**
+   * Set status code
+   * @param code - The status code for the span
+   * @returns
+   */
+  setStatusCode(code: SpanStatusCode) {
+    this.status = { code };
     return this;
   }
 
@@ -176,6 +196,15 @@ export default class Span {
       ...(this.attributes || {}),
       ...attr,
     };
+    return this;
+  }
+
+  /**
+   * Resets the attribute
+   * @returns this
+   */
+  resetAttributes() {
+    this.attributes = {};
     return this;
   }
 
@@ -274,6 +303,5 @@ export default class Span {
    */
   async export() {
     await this.exporter?.(this.toJSON());
-    return this;
   }
 }

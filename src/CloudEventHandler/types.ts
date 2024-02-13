@@ -1,5 +1,10 @@
 import * as zod from 'zod';
-import { TraceContext } from '../openTelemetry/types';
+import { SpanExporter } from '../openTelemetry/Span/types';
+import CloudEventSpan from '../openTelemetry/CloudEventSpan';
+
+export type OpenTelemetryExporters = {
+  span?: SpanExporter;
+};
 
 /**
  * Represents the validation schema for the CloudEvent.
@@ -57,6 +62,11 @@ export interface ICloudEventHandler<
   emits: CloudEventValidationSchema<TEmitType>[];
 
   /**
+   * Exporter functions to log open telemetry logs
+   */
+  openTelemetryExporters?: OpenTelemetryExporters;
+
+  /**
    * The handler function that processes the CloudEvent and returns a new CloudEvent.
    * @template TEventData - The type of data in the CloudEvent.
    * @param event - The event data to handle
@@ -87,8 +97,8 @@ export interface ICloudEventHandler<
     data: TEventData;
     // The event topic parameters
     params?: Record<string, string>;
-    // The event trace context for dirtributed tracing
-    traceContext?: TraceContext;
+    // Handler telemetry span
+    span?: CloudEventSpan;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
 }
 
@@ -101,11 +111,16 @@ export interface ICreateSimpleCloudEventHandler<TName extends string> {
   description?: string;
   accepts: zod.ZodObject<any>;
   emits: zod.ZodObject<any>;
+  /**
+   * Exporter functions to log open telemetry logs
+   */
+  openTelemetryExporters?: OpenTelemetryExporters;
+
   handler: (
     // Event data
     data: Record<string, any>,
-    // The event trace context for dirtributed tracing
-    traceContext?: TraceContext,
+    // Handler telemetry span
+    span?: CloudEventSpan,
   ) => Promise<Record<string, any>>;
   /**
    * Timeout duration in milliseconds. Default is 10000ms.
@@ -138,4 +153,8 @@ export interface ICreateHttpCloudEventHandler<TName extends string> {
    * Timeout duration in milliseconds. Default is 10000ms.
    */
   timeoutMs?: number;
+  /**
+   * Exporter functions to log open telemetry logs
+   */
+  openTelemetryExporters?: OpenTelemetryExporters;
 }

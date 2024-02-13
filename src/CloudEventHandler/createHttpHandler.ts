@@ -1,3 +1,4 @@
+import { SpanStatusCode } from '../openTelemetry/Span/types';
 import { formatTemplate } from '../utils';
 import createSimpleHandler from './createSimpleHandler';
 import { ICreateHttpCloudEventHandler } from './types';
@@ -104,7 +105,7 @@ export default function createHttpHandler<TName extends string>({
         .optional()
         .describe('The response in utf-8 string format'),
     }),
-    handler: async (data) => {
+    handler: async (data, span) => {
       const formattedHeaders = Object.assign(
         {},
         ...Object.entries((data.headers || {}) as Record<string, string>).map(
@@ -125,9 +126,32 @@ export default function createHttpHandler<TName extends string>({
             ? formatTemplate(data.body, templateVariables)
             : undefined,
       });
+
       const successCodes = Array.from(
         new Set<number>([200, 201, ...(data.successStatusCodes || [])]),
       );
+
+      span
+        ?.resetAttributes()
+        ?.setAttributes({
+          'url.full': data.url,
+          'http.request.method': data.method,
+          ...Object.assign(
+            {},
+            ...Object.entries(resp.headers).map(([key, value]) => ({
+              [`http.response.header.${key}`]: value,
+            })),
+          ),
+          'http.response.status_code': resp.status,
+          'http.response.status_text': resp.statusText,
+        })
+        ?.setStatusCode(
+          !successCodes.includes(resp.status)
+            ? SpanStatusCode.ERROR
+            : SpanStatusCode.OK,
+        )
+        ?.export();
+
       if (!successCodes.includes(resp.status)) {
         throw new HttpError(
           JSON.stringify({

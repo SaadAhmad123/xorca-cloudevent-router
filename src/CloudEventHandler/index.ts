@@ -3,9 +3,11 @@ import { CloudEvent } from 'cloudevents';
 import { ICloudEventHandler } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { formatTemplate, matchStringTemplate } from '../utils';
+import { matchStringTemplate } from '../utils';
 import { TraceContext } from '../openTelemetry/types';
 import TraceParent from '../openTelemetry/traceparent';
+import CloudEventSpan from '../openTelemetry/CloudEventSpan';
+import { SpanKind, SpanStatusCode } from '../openTelemetry/Span/types';
 
 /**
  * Represents a CloudEventHandler that processes CloudEvents. This class
@@ -99,10 +101,8 @@ export default class CloudEventHandler<
    */
   async cloudevent(
     event: CloudEvent<Record<string, any>>,
+    span?: CloudEventSpan,
   ): Promise<CloudEvent<Record<string, any>>> {
-    const traceContext: TraceContext = TraceParent.parse(
-      event.traceparent as string | undefined,
-    );
     for (const prop of ['subject', 'type', 'data', 'datacontenttype']) {
       if (!event[prop]) {
         throw new CloudEventHandlerError(
@@ -150,7 +150,7 @@ export default class CloudEventHandler<
         type: type as TAcceptType,
         data: data || {},
         params: matchResp.result,
-        traceContext,
+        span,
       });
     } catch (e) {
       throw new CloudEventHandlerError(
@@ -192,8 +192,7 @@ export default class CloudEventHandler<
       datacontenttype,
       subject,
       source: encodeURIComponent(this.params.name || this.topic),
-      traceparent: TraceParent.create.traceparent(traceContext) || '',
-      tracestate: event.tracestate || '',
+      ...(span?.getDistriubutedTraceHeaders() || {}),
     });
   }
 
@@ -208,33 +207,52 @@ export default class CloudEventHandler<
     eventToEmit: CloudEvent<Record<string, any>>;
     error?: CloudEventHandlerError;
   }> {
-    const traceContext: TraceContext = TraceParent.parse(
-      event.traceparent as string | undefined,
-    );
+    const span = new CloudEventSpan({
+      name: this.topic,
+      traceparent: (event.traceparent || '') as string,
+      exporter: this.params.openTelemetryExporters?.span,
+    });
+    span
+      .start()
+      .resetAttributes()
+      .setCloudEvent(event)
+      .setSpanKind(SpanKind.CONSUMER)
+      .setStatusCode(SpanStatusCode.OK)
+      .export();
     try {
-      return {
-        success: true,
-        eventToEmit: await this.cloudevent(event),
-      };
+      const eventToEmit = await this.cloudevent(event, span);
+      span
+        .resetAttributes()
+        .setCloudEvent(eventToEmit)
+        .setSpanKind(SpanKind.PRODUCER)
+        .setStatusCode(SpanStatusCode.OK)
+        .end()
+        .export();
+      return { success: true, eventToEmit };
     } catch (e) {
-      return {
-        success: false,
-        eventToEmit: new CloudEvent({
-          source: encodeURIComponent(this.params.name || this.topic),
-          type: `sys.${this.params.name}.error`,
-          subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
-          data: {
-            errorName: (e as CloudEventHandlerError).name,
-            errorStack: (e as CloudEventHandlerError).stack,
-            errorMessage: (e as CloudEventHandlerError).message,
-            additional: (e as CloudEventHandlerError).additional,
-            event: (e as CloudEventHandlerError).event,
-          },
-          datacontenttype: 'application/json',
-          traceparent: TraceParent.create.traceparent(traceContext) || '',
-          tracestate: event.tracestate || '',
-        }),
-      };
+      const eventToEmit = new CloudEvent({
+        source: encodeURIComponent(this.params.name || this.topic),
+        type: `sys.${this.params.name}.error`,
+        subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
+        data: {
+          errorName: (e as CloudEventHandlerError).name,
+          errorStack: (e as CloudEventHandlerError).stack,
+          errorMessage: (e as CloudEventHandlerError).message,
+          additional: (e as CloudEventHandlerError).additional,
+          event: (e as CloudEventHandlerError).event,
+        },
+        datacontenttype: 'application/json',
+        ...(span?.getDistriubutedTraceHeaders() || {}),
+      });
+      span
+        .resetAttributes()
+        .setCloudEvent(eventToEmit)
+        .setSpanKind(SpanKind.PRODUCER)
+        .logError(e as Error)
+        .setStatusCode(SpanStatusCode.ERROR)
+        .end()
+        .export();
+      return { success: false, eventToEmit };
     }
   }
 
