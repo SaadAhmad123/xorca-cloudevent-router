@@ -112,5 +112,6 @@ export default function createSimpleHandler<TName extends string>(
         };
       }
     },
+    openTelemetryExporters: params.openTelemetryExporters,
   });
 }

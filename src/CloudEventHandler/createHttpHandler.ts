@@ -33,6 +33,7 @@ export default function createHttpHandler<TName extends string>({
   whitelistedUrls,
   variables = {},
   timeoutMs = 10000,
+  openTelemetryExporters,
 }: ICreateHttpCloudEventHandler<TName>) {
   const templateVariables = Object.assign(
     {},
@@ -47,6 +48,7 @@ export default function createHttpHandler<TName extends string>({
     name,
     description,
     timeoutMs,
+    openTelemetryExporters,
     accepts: zod.object({
       method: zod
         .enum([
