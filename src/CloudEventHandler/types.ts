@@ -1,4 +1,5 @@
 import * as zod from 'zod';
+import { TraceContext } from '../openTelemetry/types';
 
 /**
  * Represents the validation schema for the CloudEvent.
@@ -80,9 +81,14 @@ export interface ICloudEventHandler<
   handler: <
     TEventData extends Record<string, any> = Record<string, any>,
   >(event: {
+    // The event type/ topic
     type: TAcceptType;
+    // The event data
     data: TEventData;
+    // The event topic parameters
     params?: Record<string, string>;
+    // The event trace context for dirtributed tracing
+    traceContext?: TraceContext;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
 }
 
@@ -95,7 +101,12 @@ export interface ICreateSimpleCloudEventHandler<TName extends string> {
   description?: string;
   accepts: zod.ZodObject<any>;
   emits: zod.ZodObject<any>;
-  handler: (data: Record<string, any>) => Promise<Record<string, any>>;
+  handler: (
+    // Event data
+    data: Record<string, any>,
+    // The event trace context for dirtributed tracing
+    traceContext?: TraceContext,
+  ) => Promise<Record<string, any>>;
   /**
    * Timeout duration in milliseconds. Default is 10000ms.
    */

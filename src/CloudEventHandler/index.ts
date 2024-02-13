@@ -150,6 +150,7 @@ export default class CloudEventHandler<
         type: type as TAcceptType,
         data: data || {},
         params: matchResp.result,
+        traceContext,
       });
     } catch (e) {
       throw new CloudEventHandlerError(

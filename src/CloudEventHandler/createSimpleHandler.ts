@@ -79,14 +79,14 @@ export default function createSimpleHandler<TName extends string>(
         }),
       },
     ],
-    handler: async ({ type, data, params: topicParams }) => {
+    handler: async ({ type, data, params: topicParams, traceContext }) => {
       const timeoutMs = params.timeoutMs || 10000;
       try {
         return await timedPromise(async () => {
           try {
             return {
               type: `evt.${formatTemplate(params.name, topicParams)}.success` as `evt.${TName}.success`,
-              data: await params.handler(data),
+              data: await params.handler(data, traceContext),
             };
           } catch (error) {
             return {
