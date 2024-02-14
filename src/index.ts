@@ -15,7 +15,6 @@ import { PromiseTimeoutError, timedPromise } from './utils';
 import { SpanContext, TraceFlags } from './openTelemetry/Span/types';
 import TraceParent from './openTelemetry/traceparent';
 
-
 export {
   CloudEventHandler,
   CloudEventRouter,

@@ -135,7 +135,7 @@ describe('Util specs', () => {
   });
 
   it(`should put hyphen in the right place`, () => {
-    const resp = insertHyphen('4efaaf4d1e8720b39541901950019ee5', 8)
-    expect(resp).toBe('4efaaf4d-1e8720b39541901950019ee5')
-  })
+    const resp = insertHyphen('4efaaf4d1e8720b39541901950019ee5', 8);
+    expect(resp).toBe('4efaaf4d-1e8720b39541901950019ee5');
+  });
 });

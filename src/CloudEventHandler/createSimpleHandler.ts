@@ -90,16 +90,31 @@ export default function createSimpleHandler<TName extends string>(
       const timeoutMs = params.timeoutMs || 10000;
       const start: number = performance.now();
       let result: any;
-      let error: Error | undefined = undefined;
       try {
         await timedPromise(async () => {
           try {
+            await logger({
+              type: 'START',
+              source: 'createSimpleHandler.handler',
+              spanContext,
+              input: { type, data },
+              startTime: start,
+              params: topicParams,
+            });
             result = {
               type: `evt.${formatTemplate(params.name, topicParams)}.success` as `evt.${TName}.success`,
-              data: await params.handler(data, spanContext),
+              data: await params.handler(data, spanContext, logger),
             };
           } catch (err) {
-            error = err as Error;
+            const error = err as Error;
+            await logger({
+              type: 'ERROR',
+              source: 'createSimpleHandler.handler',
+              spanContext,
+              input: { type, data },
+              params: topicParams,
+              error,
+            });
             result = {
               type: `evt.${formatTemplate(params.name, topicParams)}.error` as `evt.${TName}.error`,
               data: {
@@ -111,7 +126,15 @@ export default function createSimpleHandler<TName extends string>(
           }
         }, timeoutMs)();
       } catch (err) {
-        error = err as Error;
+        const error = err as Error;
+        await logger({
+          type: 'ERROR',
+          source: 'createSimpleHandler.handler',
+          spanContext,
+          input: { type, data },
+          params: topicParams,
+          error,
+        });
         result = {
           type: `evt.${formatTemplate(params.name, topicParams)}.timeout` as `evt.${TName}.timeout`,
           data: {
@@ -123,22 +146,18 @@ export default function createSimpleHandler<TName extends string>(
           },
         };
       }
-      try {
-        const endTime = performance.now()
-        await logger?.({
-          source: 'createSimpleHandler.handler',
-          spanContext,
-          input: { type, data },
-          output: result,
-          startTime: start,
-          endTime,
-          duration: endTime - start,
-          params: topicParams,
-          error,
-        });
-      } catch (e) {
-        console.error(e);
-      }
+      const endTime = performance.now();
+      await logger?.({
+        type: 'END',
+        source: 'createSimpleHandler.handler',
+        spanContext,
+        input: { type, data },
+        output: result,
+        startTime: start,
+        endTime,
+        duration: endTime - start,
+        params: topicParams,
+      });
       return result;
     },
   });

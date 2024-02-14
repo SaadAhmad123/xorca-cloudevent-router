@@ -1,6 +1,6 @@
 import * as zod from 'zod';
 import { CloudEvent } from 'cloudevents';
-import { ICloudEventHandler } from './types';
+import { ICloudEventHandler, ILogger, Logger } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { matchStringTemplate } from '../utils';
@@ -88,6 +88,23 @@ export default class CloudEventHandler<
     return this.params.accepts.type;
   }
 
+  public getLogger() {
+    return this.params.logger;
+  }
+
+  public setLogger(logger: Logger) {
+    this.params.logger = logger;
+    return this;
+  }
+
+  private async logger(params: ILogger) {
+    try {
+      await this.params.logger?.(params);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   /**
    * Processes the given CloudEvent and returns a new CloudEvent.
    * This function also takes care of distributed tracing as described [here](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/distributed-tracing.md),
@@ -149,7 +166,7 @@ export default class CloudEventHandler<
         data: data || {},
         params: matchResp.result,
         spanContext,
-        logger: this.params.logger,
+        logger: this.logger,
       });
     } catch (e) {
       throw new CloudEventHandlerError(
@@ -216,10 +233,32 @@ export default class CloudEventHandler<
     let eventToEmit: CloudEvent<Record<string, any>>;
     let error: Error | undefined = undefined;
     try {
+      await this.logger({
+        type: 'START',
+        source: 'CloudEventHandler.safeCloudevent',
+        spanContext,
+        input: {
+          ...event.toJSON(),
+          type: event.type,
+          data: event.data as Record<string, any>,
+        },
+        startTime: start,
+      });
       eventToEmit = await this.cloudevent(event, spanContext);
       success = true;
     } catch (e) {
       error = e as Error;
+      await this.logger({
+        type: 'ERROR',
+        source: 'CloudEventHandler.safeCloudevent',
+        spanContext,
+        error,
+        input: {
+          ...event.toJSON(),
+          type: event.type,
+          data: event.data as Record<string, any>,
+        },
+      });
       eventToEmit = new CloudEvent({
         source: encodeURIComponent(this.params.name || this.topic),
         type: `sys.${this.params.name}.error`,
@@ -236,31 +275,20 @@ export default class CloudEventHandler<
         tracestate: spanContext.traceState || '',
       });
     }
-    try {
-      const endTime = performance.now()
-      await this.params.logger?.({
-        source: 'CloudEventHandler.safeCloudevent',
-        spanContext,
-        input: {
-          ...event.toJSON(),
-          type: event.type,
-          data: event.data as Record<string, any>,
-        },
-        output: {
-          ...eventToEmit.toJSON(),
-          type: eventToEmit.type,
-          data: eventToEmit.data as Record<string, any>,
-        },
-        params: undefined,
-        error,
-        startTime: start,
-        endTime,
-        duration: endTime - start,
-      });
-    } catch (e) {
-      console.error(e);
-    }
-
+    const endTime = performance.now();
+    await this.logger({
+      type: 'END',
+      source: 'CloudEventHandler.safeCloudevent',
+      spanContext,
+      output: {
+        ...eventToEmit.toJSON(),
+        type: eventToEmit.type,
+        data: eventToEmit.data as Record<string, any>,
+      },
+      startTime: start,
+      endTime,
+      duration: endTime - start,
+    });
     return { success, eventToEmit };
   }
 

@@ -33,7 +33,12 @@ export default class CloudEventRouter {
     }
     this.handlerMap = Object.assign(
       {},
-      ...this.params.handlers.map((item) => ({ [item.topic]: item })),
+      ...this.params.handlers.map((item) => ({
+        [item.topic]:
+          params.logger && !item.getLogger()
+            ? item.setLogger(params.logger)
+            : item,
+      })),
     );
   }
 

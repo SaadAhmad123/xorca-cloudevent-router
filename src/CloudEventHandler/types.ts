@@ -1,9 +1,10 @@
 import * as zod from 'zod';
-import { SpanContext, SpanExporter } from '../openTelemetry/Span/types';
-import CloudEventSpan from '../openTelemetry/CloudEventSpan';
-import { CloudEvent } from 'cloudevents';
+import { SpanContext } from '../openTelemetry/Span/types';
 
-export type Logger = (params: {
+export type LogType = 'START' | 'END' | 'ERROR' | 'WARNING' | 'LOG' | 'DEBUG';
+
+export interface ILogger {
+  type: LogType;
   source: string;
   message?: string;
   spanContext?: SpanContext;
@@ -11,11 +12,13 @@ export type Logger = (params: {
   output?: { type: string; data: Record<string, any>; [key: string]: any };
   params?: Record<string, any>;
   error?: Error;
-  startTime?:number,
-  endTime?: number,
+  startTime?: number;
+  endTime?: number;
   duration?: number;
   attributes?: Record<string, any>;
-}) => Promise<void>;
+}
+
+export type Logger = (params: ILogger) => Promise<void>;
 
 /**
  * Represents the validation schema for the CloudEvent.
@@ -106,7 +109,7 @@ export interface ICloudEventHandler<
     // Handler telemetry span context
     spanContext: SpanContext;
     // Passed thorough logger;
-    logger?: Logger;
+    logger: Logger;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
 
   /**
@@ -131,7 +134,7 @@ export interface ICreateSimpleCloudEventHandler<TName extends string> {
     // Handler telemetry span context
     spanContext: SpanContext,
     // Passed thorough logger;
-    logger?: Logger,
+    logger: Logger,
   ) => Promise<Record<string, any>>;
   /**
    * Timeout duration in milliseconds. Default is 10000ms.

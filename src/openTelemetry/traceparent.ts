@@ -83,11 +83,12 @@ export default class TraceParent {
    */
   static parse(traceparent?: string, tracestate?: string): SpanContext {
     let parsedTraceParent: string[] | undefined;
-
-    if (TraceParent.validate((traceparent || '') as string)) {
+    const isValidTraceParent = TraceParent.validate(
+      (traceparent || '') as string,
+    );
+    if (isValidTraceParent) {
       parsedTraceParent = (traceparent as string | undefined)?.split?.('-');
     }
-
     return {
       traceId: parsedTraceParent?.[1] || TraceParent.create.traceId(),
       spanId: TraceParent.create.spanId(),
@@ -95,6 +96,7 @@ export default class TraceParent {
       version: parsedTraceParent?.[0] || TraceParent.create.version(),
       traceFlags: parsedTraceParent?.[3] || TraceParent.create.flags(),
       traceState: tracestate,
+      traceparent: isValidTraceParent ? traceparent : undefined,
     } as SpanContext;
   }
 }
