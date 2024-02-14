@@ -1,4 +1,5 @@
 import { SpanStatusCode } from '../openTelemetry/Span/types';
+import TraceParent from '../openTelemetry/traceparent';
 import { formatTemplate } from '../utils';
 import createSimpleHandler from './createSimpleHandler';
 import { ICreateHttpCloudEventHandler } from './types';
@@ -121,6 +122,20 @@ export default function createHttpHandler<TName extends string>({
         method: data.method,
         headers: {
           'content-type': 'application/json',
+          'X-Amzn-Trace-Id': [
+            `Root=${spanContext.traceId}`,
+            `Sampled=${spanContext.traceFlags}`,
+            spanContext.parentId ? `Parent=${spanContext.parentId}` : '',
+          ].join(),
+          id: `${spanContext.traceId}.${spanContext.spanId}`,
+          ...(spanContext.parentId
+            ? {
+                operation_ParentId: `${spanContext.traceId}.${spanContext.parentId}`,
+              }
+            : {}),
+          operation_Id: spanContext.traceId,
+          traceparent: TraceParent.create.traceparent(spanContext),
+          'X-Cloud-Trace-Context': `${spanContext.traceId}/${spanContext.spanId};o=1`,
           ...formattedHeaders,
         },
         body:
