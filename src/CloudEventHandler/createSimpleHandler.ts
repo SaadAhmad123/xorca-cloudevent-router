@@ -37,6 +37,7 @@ export default function createSimpleHandler<TName extends string>(
   >({
     name: params.name,
     description: params.description,
+    logger: params.logger,
     accepts: {
       type: `cmd.${params.name}`,
       zodSchema: params.accepts,
@@ -79,9 +80,15 @@ export default function createSimpleHandler<TName extends string>(
         }),
       },
     ],
-    handler: async ({ type, data, params: topicParams, spanContext }) => {
+    handler: async ({
+      type,
+      data,
+      params: topicParams,
+      spanContext,
+      logger,
+    }) => {
       const timeoutMs = params.timeoutMs || 10000;
-      const start: number = performance.now()
+      const start: number = performance.now();
       let result: any;
       let error: Error | undefined = undefined;
       try {
@@ -117,7 +124,8 @@ export default function createSimpleHandler<TName extends string>(
         };
       }
       try {
-        await params.logger?.({
+        await logger?.({
+          source: 'createSimpleHandler.handler',
           spanContext,
           input: { type, data },
           output: { type, data },

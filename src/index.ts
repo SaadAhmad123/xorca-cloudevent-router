@@ -14,7 +14,6 @@ import { ICloudEventRouter } from './CloudEventRouter/types';
 import { PromiseTimeoutError, timedPromise } from './utils';
 import { SpanContext } from './openTelemetry/Span/types';
 
-
 export {
   CloudEventHandler,
   CloudEventRouter,
@@ -28,5 +27,5 @@ export {
   ICloudEventHandler,
   ICloudEventRouter,
   SpanContext,
-  Logger
+  Logger,
 };

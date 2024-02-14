@@ -107,7 +107,7 @@ export default function createHttpHandler<TName extends string>({
         .optional()
         .describe('The response in utf-8 string format'),
     }),
-    handler: async (data, spanContext) => {
+    handler: async (data, spanContext, logger) => {
       const formattedHeaders = Object.assign(
         {},
         ...Object.entries((data.headers || {}) as Record<string, string>).map(

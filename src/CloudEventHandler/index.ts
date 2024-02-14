@@ -149,6 +149,7 @@ export default class CloudEventHandler<
         data: data || {},
         params: matchResp.result,
         spanContext,
+        logger: this.params.logger,
       });
     } catch (e) {
       throw new CloudEventHandlerError(
@@ -206,16 +207,19 @@ export default class CloudEventHandler<
     eventToEmit: CloudEvent<Record<string, any>>;
     error?: CloudEventHandlerError;
   }> {
+    const start = performance.now();
     const spanContext: SpanContext = TraceParent.parse(
       (event.traceparent || '') as string,
       (event.tracestate || '') as string,
     );
     let success = false;
     let eventToEmit: CloudEvent<Record<string, any>>;
+    let error: Error | undefined = undefined;
     try {
       eventToEmit = await this.cloudevent(event, spanContext);
       success = true;
     } catch (e) {
+      error = e as Error;
       eventToEmit = new CloudEvent({
         source: encodeURIComponent(this.params.name || this.topic),
         type: `sys.${this.params.name}.error`,
@@ -232,6 +236,28 @@ export default class CloudEventHandler<
         tracestate: spanContext.traceState || '',
       });
     }
+    try {
+      await this.params.logger?.({
+        source: 'CloudEventHandler.safeCloudevent',
+        spanContext,
+        input: {
+          ...event.toJSON(),
+          type: event.type,
+          data: event.data as Record<string, any>,
+        },
+        output: {
+          ...eventToEmit.toJSON(),
+          type: eventToEmit.type,
+          data: eventToEmit.data as Record<string, any>,
+        },
+        params: undefined,
+        error,
+        duration: performance.now() - start,
+      });
+    } catch (e) {
+      console.error(e);
+    }
+
     return { success, eventToEmit };
   }
 

@@ -4,12 +4,14 @@ import CloudEventSpan from '../openTelemetry/CloudEventSpan';
 import { CloudEvent } from 'cloudevents';
 
 export type Logger = (params: {
+  source: string;
+  message?: string;
   spanContext?: SpanContext;
-  input?: { type: string; data: Record<string, any> };
-  output?: { type: string; data: Record<string, any> };
+  input?: { type: string; data: Record<string, any>; [key: string]: any };
+  output?: { type: string; data: Record<string, any>; [key: string]: any };
   params?: Record<string, any>;
   error?: Error;
-  duration?: number,
+  duration?: number;
   attributes?: Record<string, any>;
 }) => Promise<void>;
 
@@ -101,7 +103,14 @@ export interface ICloudEventHandler<
     params?: Record<string, string>;
     // Handler telemetry span context
     spanContext: SpanContext;
+    // Passed thorough logger;
+    logger?: Logger;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
+
+  /**
+   * A logging function
+   */
+  logger?: Logger;
 }
 
 /**
@@ -119,6 +128,8 @@ export interface ICreateSimpleCloudEventHandler<TName extends string> {
     data: Record<string, any>,
     // Handler telemetry span context
     spanContext: SpanContext,
+    // Passed thorough logger;
+    logger?: Logger,
   ) => Promise<Record<string, any>>;
   /**
    * Timeout duration in milliseconds. Default is 10000ms.
