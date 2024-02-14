@@ -81,6 +81,7 @@ export default function createSimpleHandler<TName extends string>(
     ],
     handler: async ({ type, data, params: topicParams, spanContext }) => {
       const timeoutMs = params.timeoutMs || 10000;
+      const start: number = performance.now()
       let result: any;
       let error: Error | undefined = undefined;
       try {
@@ -120,6 +121,7 @@ export default function createSimpleHandler<TName extends string>(
           spanContext,
           input: { type, data },
           output: { type, data },
+          duration: performance.now() - start,
           params: topicParams,
           error,
         });
