@@ -128,7 +128,7 @@ export default function createSimpleHandler<TName extends string>(
           source: 'createSimpleHandler.handler',
           spanContext,
           input: { type, data },
-          output: { type, data },
+          output: result,
           duration: performance.now() - start,
           params: topicParams,
           error,
