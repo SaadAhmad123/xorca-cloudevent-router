@@ -84,6 +84,11 @@ export type SpanContext = {
    *         tracestate: rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
    */
   traceState?: string;
+
+  /**
+   * Parent span id
+   */
+  parentId?: string;
 };
 /**
  * Defines High-Resolution Time.

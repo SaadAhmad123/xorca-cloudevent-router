@@ -28,9 +28,9 @@ describe('The traceparent spec', () => {
 
     const traceContext = TraceParent.parse(traceparent);
     expect(traceContext.traceId).toBe(traceId);
-    expect(traceContext.parentSpanId).toBe(parentSpanId);
+    expect(traceContext.parentId).toBe(parentSpanId);
     expect(traceContext.version).toBe(version);
-    expect(traceContext.flags).toBe(flags);
+    expect(traceContext.traceFlags).toBe(flags);
     expect(traceContext.spanId.length).toBe(16);
   });
 
@@ -39,9 +39,9 @@ describe('The traceparent spec', () => {
       const traceContext = TraceParent.parse(traceparent);
       expect(traceContext.spanId.length).toBe(16);
       expect(traceContext.traceId.length).toBe(32);
-      expect(traceContext.parentSpanId).toBe(null);
-      expect(traceContext.version.length).toBe(2);
-      expect(traceContext.flags.length).toBe(2);
+      expect(traceContext.parentId).toBe(undefined);
+      expect(traceContext.version?.length).toBe(2);
+      expect(traceContext.traceFlags.length).toBe(2);
       expect(
         TraceParent.validate(TraceParent.create.traceparent(traceContext)),
       ).toBe(true);

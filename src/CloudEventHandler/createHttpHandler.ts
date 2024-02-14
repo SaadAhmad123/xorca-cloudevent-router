@@ -33,7 +33,7 @@ export default function createHttpHandler<TName extends string>({
   whitelistedUrls,
   variables = {},
   timeoutMs = 10000,
-  openTelemetryExporters,
+  logger,
 }: ICreateHttpCloudEventHandler<TName>) {
   const templateVariables = Object.assign(
     {},
@@ -48,7 +48,7 @@ export default function createHttpHandler<TName extends string>({
     name,
     description,
     timeoutMs,
-    openTelemetryExporters,
+    logger,
     accepts: zod.object({
       method: zod
         .enum([
@@ -107,7 +107,7 @@ export default function createHttpHandler<TName extends string>({
         .optional()
         .describe('The response in utf-8 string format'),
     }),
-    handler: async (data, span) => {
+    handler: async (data, spanContext) => {
       const formattedHeaders = Object.assign(
         {},
         ...Object.entries((data.headers || {}) as Record<string, string>).map(
@@ -132,27 +132,6 @@ export default function createHttpHandler<TName extends string>({
       const successCodes = Array.from(
         new Set<number>([200, 201, ...(data.successStatusCodes || [])]),
       );
-
-      span
-        ?.resetAttributes()
-        ?.setAttributes({
-          'url.full': data.url,
-          'http.request.method': data.method,
-          ...Object.assign(
-            {},
-            ...Object.entries(resp.headers).map(([key, value]) => ({
-              [`http.response.header.${key}`]: value,
-            })),
-          ),
-          'http.response.status_code': resp.status,
-          'http.response.status_text': resp.statusText,
-        })
-        ?.setStatusCode(
-          !successCodes.includes(resp.status)
-            ? SpanStatusCode.ERROR
-            : SpanStatusCode.OK,
-        )
-        ?.export();
 
       if (!successCodes.includes(resp.status)) {
         throw new HttpError(

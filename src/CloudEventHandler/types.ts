@@ -1,10 +1,16 @@
 import * as zod from 'zod';
-import { SpanExporter } from '../openTelemetry/Span/types';
+import { SpanContext, SpanExporter } from '../openTelemetry/Span/types';
 import CloudEventSpan from '../openTelemetry/CloudEventSpan';
+import { CloudEvent } from 'cloudevents';
 
-export type OpenTelemetryExporters = {
-  span?: SpanExporter;
-};
+export type Logger = (params: {
+  spanContext?: SpanContext;
+  input?: { type: string; data: Record<string, any> };
+  output?: { type: string; data: Record<string, any> };
+  params?: Record<string, any>;
+  error?: Error;
+  attributes?: Record<string, any>;
+}) => Promise<void>;
 
 /**
  * Represents the validation schema for the CloudEvent.
@@ -62,11 +68,6 @@ export interface ICloudEventHandler<
   emits: CloudEventValidationSchema<TEmitType>[];
 
   /**
-   * Exporter functions to log open telemetry logs
-   */
-  openTelemetryExporters?: OpenTelemetryExporters;
-
-  /**
    * The handler function that processes the CloudEvent and returns a new CloudEvent.
    * @template TEventData - The type of data in the CloudEvent.
    * @param event - The event data to handle
@@ -97,8 +98,8 @@ export interface ICloudEventHandler<
     data: TEventData;
     // The event topic parameters
     params?: Record<string, string>;
-    // Handler telemetry span
-    span?: CloudEventSpan;
+    // Handler telemetry span context
+    spanContext: SpanContext;
   }) => Promise<{ type: TEmitType; data: Record<string, any> }>;
 }
 
@@ -111,21 +112,22 @@ export interface ICreateSimpleCloudEventHandler<TName extends string> {
   description?: string;
   accepts: zod.ZodObject<any>;
   emits: zod.ZodObject<any>;
-  /**
-   * Exporter functions to log open telemetry logs
-   */
-  openTelemetryExporters?: OpenTelemetryExporters;
 
   handler: (
     // Event data
     data: Record<string, any>,
-    // Handler telemetry span
-    span?: CloudEventSpan,
+    // Handler telemetry span context
+    spanContext: SpanContext,
   ) => Promise<Record<string, any>>;
   /**
    * Timeout duration in milliseconds. Default is 10000ms.
    */
   timeoutMs?: number;
+
+  /**
+   * A logging function
+   */
+  logger?: Logger;
 }
 
 /**
@@ -153,8 +155,9 @@ export interface ICreateHttpCloudEventHandler<TName extends string> {
    * Timeout duration in milliseconds. Default is 10000ms.
    */
   timeoutMs?: number;
+
   /**
-   * Exporter functions to log open telemetry logs
+   * A logging function
    */
-  openTelemetryExporters?: OpenTelemetryExporters;
+  logger?: Logger;
 }

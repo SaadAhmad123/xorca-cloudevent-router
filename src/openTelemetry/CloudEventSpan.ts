@@ -16,7 +16,7 @@ export default class CloudEventSpan extends Span {
     super({
       name: params.name,
       kind: params.kind,
-      parentId: traceParent.parentSpanId || undefined,
+      parentId: traceParent.parentId || undefined,
       exporter: params.exporter,
       context: {
         traceFlags: TraceFlags.NONE,
@@ -32,12 +32,7 @@ export default class CloudEventSpan extends Span {
   getDistriubutedTraceHeaders() {
     return {
       tracestate: this.context.traceState || '',
-      traceparent: TraceParent.create.traceparent({
-        version: this.context.version || '00',
-        traceId: this.context.traceId,
-        spanId: this.context.spanId,
-        flags: this.context.traceFlags,
-      }),
+      traceparent: TraceParent.create.traceparent(this.context),
     };
   }
 

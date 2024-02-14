@@ -79,17 +79,20 @@ export default function createSimpleHandler<TName extends string>(
         }),
       },
     ],
-    handler: async ({ type, data, params: topicParams, span }) => {
+    handler: async ({ type, data, params: topicParams, spanContext }) => {
       const timeoutMs = params.timeoutMs || 10000;
+      let result: any;
+      let error: Error | undefined = undefined;
       try {
-        return await timedPromise(async () => {
+        await timedPromise(async () => {
           try {
-            return {
+            result = {
               type: `evt.${formatTemplate(params.name, topicParams)}.success` as `evt.${TName}.success`,
-              data: await params.handler(data, span),
+              data: await params.handler(data, spanContext),
             };
-          } catch (error) {
-            return {
+          } catch (err) {
+            error = err as Error;
+            result = {
               type: `evt.${formatTemplate(params.name, topicParams)}.error` as `evt.${TName}.error`,
               data: {
                 errorName: (error as Error)?.name,
@@ -100,7 +103,8 @@ export default function createSimpleHandler<TName extends string>(
           }
         }, timeoutMs)();
       } catch (err) {
-        return {
+        error = err as Error;
+        result = {
           type: `evt.${formatTemplate(params.name, topicParams)}.timeout` as `evt.${TName}.timeout`,
           data: {
             timeout: timeoutMs,
@@ -111,7 +115,18 @@ export default function createSimpleHandler<TName extends string>(
           },
         };
       }
+      try {
+        await params.logger?.({
+          spanContext,
+          input: { type, data },
+          output: { type, data },
+          params: topicParams,
+          error,
+        });
+      } catch (e) {
+        console.error(e);
+      }
+      return result;
     },
-    openTelemetryExporters: params.openTelemetryExporters,
   });
 }

@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { ICreateTraceParent, TraceContext } from './types';
+import { SpanContext } from './Span/types';
 
 /**
  * This class contains functions to handle the CloudEvent
@@ -48,12 +48,12 @@ export default class TraceParent {
      */
     flags: (): string => '01',
 
-    traceparent: (params?: ICreateTraceParent) =>
+    traceparent: (params?: SpanContext) =>
       [
         params?.version || TraceParent.create.version(),
         params?.traceId || TraceParent.create.traceId(),
         params?.spanId || TraceParent.create.spanId(),
-        params?.flags || TraceParent.create.flags(),
+        params?.traceFlags || TraceParent.create.flags(),
       ].join('-'),
   };
 
@@ -63,7 +63,7 @@ export default class TraceParent {
    * @param {string} traceparent - The CloudEvent `traceparent` field.
    * @returns {TraceContext} - The trace context data.
    */
-  static parse(traceparent?: string): TraceContext {
+  static parse(traceparent?: string, tracestate?: string): SpanContext {
     let parsedTraceParent: string[] | undefined;
 
     if (TraceParent.validate((traceparent || '') as string)) {
@@ -73,9 +73,10 @@ export default class TraceParent {
     return {
       traceId: parsedTraceParent?.[1] || TraceParent.create.traceId(),
       spanId: TraceParent.create.spanId(),
-      parentSpanId: parsedTraceParent?.[2] || null,
+      parentId: parsedTraceParent?.[2],
       version: parsedTraceParent?.[0] || TraceParent.create.version(),
-      flags: parsedTraceParent?.[3] || TraceParent.create.flags(),
-    } as TraceContext;
+      traceFlags: parsedTraceParent?.[3] || TraceParent.create.flags(),
+      traceState: tracestate,
+    } as SpanContext;
   }
 }
