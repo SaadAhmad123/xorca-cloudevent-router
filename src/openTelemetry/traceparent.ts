@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 import { SpanContext } from './Span/types';
-import { insertHyphen, makeTimeWithHexDigits } from '../utils';
+import { insertHyphen } from '../utils';
 
 /**
  * This class contains functions to handle the CloudEvent
@@ -89,14 +89,17 @@ export default class TraceParent {
     if (isValidTraceParent) {
       parsedTraceParent = (traceparent as string | undefined)?.split?.('-');
     }
-    return {
+    const context = {
       traceId: parsedTraceParent?.[1] || TraceParent.create.traceId(),
       spanId: TraceParent.create.spanId(),
       parentId: parsedTraceParent?.[2],
       version: parsedTraceParent?.[0] || TraceParent.create.version(),
       traceFlags: parsedTraceParent?.[3] || TraceParent.create.flags(),
+    } as SpanContext;
+    return {
+      ...context,
+      traceparent: TraceParent.create.traceparent(context),
       traceState: tracestate,
-      traceparent: isValidTraceParent ? traceparent : undefined,
     } as SpanContext;
   }
 }
