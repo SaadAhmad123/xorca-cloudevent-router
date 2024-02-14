@@ -151,7 +151,6 @@ export default function createSimpleHandler<TName extends string>(
         type: 'END',
         source: `createSimpleHandler<${params.name}>.handler`,
         spanContext,
-        input: { type, data },
         output: result,
         startTime: start,
         endTime,
