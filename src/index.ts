@@ -3,7 +3,9 @@ import { CloudEventHandlerError } from './CloudEventHandler/errors';
 import {
   CloudEventValidationSchema,
   ICloudEventHandler,
-  Logger, ILogger, LogType
+  Logger,
+  ILogger,
+  LogType,
 } from './CloudEventHandler/types';
 
 import createSimpleHandler from './CloudEventHandler/createSimpleHandler';

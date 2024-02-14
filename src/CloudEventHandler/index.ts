@@ -89,7 +89,7 @@ export default class CloudEventHandler<
   }
 
   public getLogger() {
-    return this.params?.logger;
+    return this.params.logger;
   }
 
   public setLogger(logger: Logger) {
@@ -166,7 +166,9 @@ export default class CloudEventHandler<
         data: data || {},
         params: matchResp.result,
         spanContext,
-        logger: this.logger,
+        logger: async (logParams: ILogger) => {
+          await this.logger(logParams);
+        },
       });
     } catch (e) {
       throw new CloudEventHandlerError(
