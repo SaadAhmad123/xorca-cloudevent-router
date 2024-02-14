@@ -124,12 +124,15 @@ export default function createSimpleHandler<TName extends string>(
         };
       }
       try {
+        const endTime = performance.now()
         await logger?.({
           source: 'createSimpleHandler.handler',
           spanContext,
           input: { type, data },
           output: result,
-          duration: performance.now() - start,
+          startTime: start,
+          endTime,
+          duration: endTime - start,
           params: topicParams,
           error,
         });

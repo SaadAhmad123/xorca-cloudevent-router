@@ -11,6 +11,8 @@ export type Logger = (params: {
   output?: { type: string; data: Record<string, any>; [key: string]: any };
   params?: Record<string, any>;
   error?: Error;
+  startTime?:number,
+  endTime?: number,
   duration?: number;
   attributes?: Record<string, any>;
 }) => Promise<void>;

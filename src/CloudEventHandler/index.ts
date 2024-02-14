@@ -237,6 +237,7 @@ export default class CloudEventHandler<
       });
     }
     try {
+      const endTime = performance.now()
       await this.params.logger?.({
         source: 'CloudEventHandler.safeCloudevent',
         spanContext,
@@ -252,7 +253,9 @@ export default class CloudEventHandler<
         },
         params: undefined,
         error,
-        duration: performance.now() - start,
+        startTime: start,
+        endTime,
+        duration: endTime - start,
       });
     } catch (e) {
       console.error(e);
