@@ -95,7 +95,7 @@ export default function createSimpleHandler<TName extends string>(
           try {
             await logger({
               type: 'START',
-              source: 'createSimpleHandler.handler',
+              source: `createSimpleHandler<${params.name}>.handler`,
               spanContext,
               input: { type, data },
               startTime: start,
@@ -109,7 +109,7 @@ export default function createSimpleHandler<TName extends string>(
             const error = err as Error;
             await logger({
               type: 'ERROR',
-              source: 'createSimpleHandler.handler',
+              source: `createSimpleHandler<${params.name}>.handler`,
               spanContext,
               input: { type, data },
               params: topicParams,
@@ -129,7 +129,7 @@ export default function createSimpleHandler<TName extends string>(
         const error = err as Error;
         await logger({
           type: 'ERROR',
-          source: 'createSimpleHandler.handler',
+          source: `createSimpleHandler<${params.name}>.handler`,
           spanContext,
           input: { type, data },
           params: topicParams,
@@ -149,7 +149,7 @@ export default function createSimpleHandler<TName extends string>(
       const endTime = performance.now();
       await logger?.({
         type: 'END',
-        source: 'createSimpleHandler.handler',
+        source: `createSimpleHandler<${params.name}>.handler`,
         spanContext,
         input: { type, data },
         output: result,

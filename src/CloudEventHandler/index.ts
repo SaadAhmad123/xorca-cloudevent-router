@@ -237,7 +237,7 @@ export default class CloudEventHandler<
     try {
       await this.logger({
         type: 'START',
-        source: 'CloudEventHandler.safeCloudevent',
+        source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
         spanContext,
         input: {
           ...event.toJSON(),
@@ -252,7 +252,7 @@ export default class CloudEventHandler<
       error = e as Error;
       await this.logger({
         type: 'ERROR',
-        source: 'CloudEventHandler.safeCloudevent',
+        source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
         spanContext,
         error,
         input: {
@@ -280,7 +280,7 @@ export default class CloudEventHandler<
     const endTime = performance.now();
     await this.logger({
       type: 'END',
-      source: 'CloudEventHandler.safeCloudevent',
+      source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
       spanContext,
       output: {
         ...eventToEmit.toJSON(),
