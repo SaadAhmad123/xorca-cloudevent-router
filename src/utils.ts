@@ -196,3 +196,12 @@ export function makeTimeWithHexDigits(
   const hexTime: string = currentTimeInMilliseconds.toString(16).toUpperCase();
   return hexTime.padStart(8, '0');
 }
+
+export function insertHyphen(inputString: string, position: number): string {
+    if (position < 0 || position > inputString.length) {
+        throw new Error('Invalid position');
+    }
+    const hyphenatedString = inputString.slice(0, position) + '-' + inputString.slice(position);
+    return hyphenatedString;
+}
+

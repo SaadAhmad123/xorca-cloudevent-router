@@ -3,6 +3,7 @@ import {
   PromiseTimeoutError,
   matchStringTemplate,
   matchTemplates,
+  insertHyphen,
 } from '../src/utils';
 
 describe('Util specs', () => {
@@ -132,4 +133,9 @@ describe('Util specs', () => {
       expect(resp?.params?.resource).toBe(item.result?.resource);
     }
   });
+
+  it(`should put hyphen in the right place`, () => {
+    const resp = insertHyphen('4efaaf4d1e8720b39541901950019ee5', 8)
+    expect(resp).toBe('4efaaf4d-1e8720b39541901950019ee5')
+  })
 });
