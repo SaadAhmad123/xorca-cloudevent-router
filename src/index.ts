@@ -12,7 +12,9 @@ import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
 import { PromiseTimeoutError, timedPromise } from './utils';
-import { SpanContext } from './openTelemetry/Span/types';
+import { SpanContext, TraceFlags } from './openTelemetry/Span/types';
+import TraceParent from './openTelemetry/traceparent';
+
 
 export {
   CloudEventHandler,
@@ -28,4 +30,6 @@ export {
   ICloudEventRouter,
   SpanContext,
   Logger,
+  TraceParent,
+  TraceFlags,
 };

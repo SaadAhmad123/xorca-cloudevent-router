@@ -1,5 +1,6 @@
 import * as crypto from 'crypto';
 import { SpanContext } from './Span/types';
+import { makeTimeWithHexDigits } from '../utils';
 
 /**
  * This class contains functions to handle the CloudEvent
@@ -55,6 +56,23 @@ export default class TraceParent {
         params?.spanId || TraceParent.create.spanId(),
         params?.traceFlags || TraceParent.create.flags(),
       ].join('-'),
+
+    headers: (spanContext: SpanContext) => ({
+      'X-Amzn-Trace-Id': [
+        `Root=1-${makeTimeWithHexDigits()}-${spanContext.traceId}`,
+        `Sampled=${spanContext.traceFlags}`,
+        spanContext.parentId ? `Parent=${spanContext.parentId}` : '',
+      ].join(),
+      id: `${spanContext.traceId}.${spanContext.spanId}`,
+      ...(spanContext.parentId
+        ? {
+            operation_ParentId: `${spanContext.traceId}.${spanContext.parentId}`,
+          }
+        : {}),
+      operation_Id: spanContext.traceId,
+      traceparent: TraceParent.create.traceparent(spanContext),
+      'X-Cloud-Trace-Context': `${spanContext.traceId}/${spanContext.spanId};o=1`,
+    }),
   };
 
   /**

@@ -182,3 +182,17 @@ export function formatTemplate(
     template,
   );
 }
+
+/**
+ * Prints the current time provided by `Date.now()` in hexadecimal format with 8 digits.
+ * as per [documentation] https://docs.aws.amazon.com/xray/latest/devguide/xray-api-sendingdata.html#xray-api-traceids
+ * @param currentTimeInMilliseconds - Optional parameter for a specific time in milliseconds.
+ *                                    Defaults to the current time obtained from `Date.now()`.
+ * @returns A string representing the current time in hexadecimal with 8 digits.
+ */
+export function makeTimeWithHexDigits(
+  currentTimeInMilliseconds: number = Date.now(),
+): string {
+  const hexTime: string = currentTimeInMilliseconds.toString(16).toUpperCase();
+  return hexTime.padStart(8, '0');
+}
