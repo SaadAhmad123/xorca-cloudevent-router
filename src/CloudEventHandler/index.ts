@@ -156,6 +156,8 @@ export default class CloudEventHandler<
     let resp: {
       type: string;
       data: Record<string, any>;
+      subject?: string,
+      source?: string
     } = {
       type: '',
       data: {},
@@ -206,10 +208,11 @@ export default class CloudEventHandler<
     }
 
     return new CloudEvent<Record<string, any>>({
-      ...resp,
+      type: resp.type,
+      data: resp.data,
+      subject: resp.subject || subject,
+      source: encodeURIComponent(resp.source || this.params.name || this.topic),
       datacontenttype,
-      subject,
-      source: encodeURIComponent(this.params.name || this.topic),
       traceparent: TraceParent.create.traceparent(spanContext),
       tracestate: spanContext.traceState || '',
     });
