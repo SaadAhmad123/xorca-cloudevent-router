@@ -15,7 +15,7 @@ describe('createHttpHandler test', () => {
   });
 
   it('should call OpenAI api successfully', async () => {
-    const resp = await openAiHttpHandler.cloudevent(
+    const resps = await openAiHttpHandler.cloudevent(
       new CloudEvent<Record<string, any>>({
         type: 'cmd.ntk.openai.completion',
         source: '/test',
@@ -43,6 +43,7 @@ describe('createHttpHandler test', () => {
         },
       }),
     );
+    const resp = resps[0];
     expect(resp.type).toBe('evt.ntk.openai.completion.success');
     expect(resp?.data?.statusCode).toBe(200);
     const parsedData = JSON.parse(resp?.data?.text || '{}');
@@ -52,7 +53,7 @@ describe('createHttpHandler test', () => {
   });
 
   it('should fail calling OpenAI api successfully', async () => {
-    const resp = await openAiHttpHandler.cloudevent(
+    const resps = await openAiHttpHandler.cloudevent(
       new CloudEvent<Record<string, any>>({
         type: 'cmd.ntk.openai.completion',
         source: '/test',
@@ -80,7 +81,7 @@ describe('createHttpHandler test', () => {
         },
       }),
     );
-
+    const resp = resps[0];
     expect(resp.type).toBe('evt.ntk.openai.completion.error');
     expect(resp?.data?.errorName).toBe('HttpError');
     const parsedErrorMessage = JSON.parse(resp?.data?.errorMessage || '{}');
@@ -92,11 +93,7 @@ describe('createHttpHandler test', () => {
   });
 
   it('should fail validation on calling OpenAI api', async () => {
-    const {
-      success,
-      eventToEmit: resp,
-      error,
-    } = await openAiHttpHandler.safeCloudevent(
+    const resps = await openAiHttpHandler.safeCloudevent(
       new CloudEvent<Record<string, any>>({
         type: 'cmd.ntk.openai.completion',
         source: '/test',
@@ -124,6 +121,7 @@ describe('createHttpHandler test', () => {
         },
       }),
     );
+    const { success, eventToEmit: resp, error } = resps[0];
     expect(success).toBe(false);
     expect(resp.type).toBe('sys.ntk.{{response}}.error');
     expect(resp?.data?.errorMessage).toBe(

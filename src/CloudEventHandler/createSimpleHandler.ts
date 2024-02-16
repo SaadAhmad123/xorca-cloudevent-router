@@ -89,7 +89,14 @@ export default function createSimpleHandler<TName extends string>(
     }) => {
       const timeoutMs = params.timeoutMs || 10000;
       const start: number = performance.now();
-      let result: any;
+      let result: {
+        type:
+          | `evt.${TName}.success`
+          | `evt.${TName}.error`
+          | `evt.${TName}.timeout`
+          | `sys.${TName}.error`;
+        data: Record<string, any>;
+      }[] = [];
       try {
         await timedPromise(async () => {
           try {
@@ -101,10 +108,10 @@ export default function createSimpleHandler<TName extends string>(
               startTime: start,
               params: topicParams,
             });
-            result = {
+            result.push({
               type: `evt.${formatTemplate(params.name, topicParams)}.success` as `evt.${TName}.success`,
               data: await params.handler(data, spanContext, logger),
-            };
+            });
           } catch (err) {
             const error = err as Error;
             await logger({
@@ -115,14 +122,14 @@ export default function createSimpleHandler<TName extends string>(
               params: topicParams,
               error,
             });
-            result = {
+            result.push({
               type: `evt.${formatTemplate(params.name, topicParams)}.error` as `evt.${TName}.error`,
               data: {
                 errorName: (error as Error)?.name,
                 errorMessage: (error as Error)?.message,
                 errorStack: (error as Error)?.stack,
               },
-            };
+            });
           }
         }, timeoutMs)();
       } catch (err) {
@@ -135,7 +142,7 @@ export default function createSimpleHandler<TName extends string>(
           params: topicParams,
           error,
         });
-        result = {
+        result.push({
           type: `evt.${formatTemplate(params.name, topicParams)}.timeout` as `evt.${TName}.timeout`,
           data: {
             timeout: timeoutMs,
@@ -144,19 +151,24 @@ export default function createSimpleHandler<TName extends string>(
             errorStack: (err as Error)?.stack,
             eventData: { type, data },
           },
-        };
+        });
       }
       const endTime = performance.now();
-      await logger?.({
-        type: 'END',
-        source: `createSimpleHandler<${params.name}>.handler`,
-        spanContext,
-        output: result,
-        startTime: start,
-        endTime,
-        duration: endTime - start,
-        params: topicParams,
-      });
+      await Promise.all(
+        result.map(
+          async (item) =>
+            await logger?.({
+              type: 'END',
+              source: `createSimpleHandler<${params.name}>.handler`,
+              spanContext,
+              output: item,
+              startTime: start,
+              endTime,
+              duration: endTime - start,
+              params: topicParams,
+            }),
+        ),
+      );
       return result;
     },
   });

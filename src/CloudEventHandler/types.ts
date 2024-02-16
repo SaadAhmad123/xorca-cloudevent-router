@@ -110,12 +110,14 @@ export interface ICloudEventHandler<
     spanContext: SpanContext;
     // Passed thorough logger;
     logger: Logger;
-  }) => Promise<{
-    type: TEmitType;
-    data: Record<string, any>;
-    subject?: string;
-    source?: string;
-  }>;
+  }) => Promise<
+    {
+      type: TEmitType;
+      data: Record<string, any>;
+      subject?: string;
+      source?: string;
+    }[]
+  >;
 
   /**
    * A logging function

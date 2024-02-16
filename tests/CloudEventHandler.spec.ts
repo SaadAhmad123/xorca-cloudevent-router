@@ -31,8 +31,8 @@ describe('CloudEventHandler Spec', () => {
         }),
       },
     ],
-    handler: async (event: any) => {
-      return {
+    handler: async (event: any) => [
+      {
         type: 'evt.weather.fetch.success',
         data: {
           status: 200,
@@ -41,8 +41,8 @@ describe('CloudEventHandler Spec', () => {
             unit: 'C',
           },
         },
-      };
-    },
+      },
+    ],
   };
 
   it('Should throw error if the invalid event type is provided', async () => {
@@ -60,78 +60,90 @@ describe('CloudEventHandler Spec', () => {
       "[CloudEventHandler][constructor] The 'name' must not contain any spaces or special characters but the provided is saad   ahmad",
     );
 
-    let resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'evt.handler',
-      }),
-    );
+    let resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'evt.handler',
+        }),
+      )
+    )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
-    resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'evt.handler',
-        subject: 'some',
-      }),
-    );
+    resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'evt.handler',
+          subject: 'some',
+        }),
+      )
+    )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
-    resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'evt.handler',
-        subject: 'some',
-        data: {},
-      }),
-    );
+    resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'evt.handler',
+          subject: 'some',
+          data: {},
+        }),
+      )
+    )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The datacontenttype MUST be provided.',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
-    resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'evt.handler',
-        subject: 'some',
-        data: {},
-        datacontenttype: 'application',
-      }),
-    );
+    resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'evt.handler',
+          subject: 'some',
+          data: {},
+          datacontenttype: 'application',
+        }),
+      )
+    )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/json' but the provided is application",
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
-    resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'evt.handler',
-        subject: 'some',
-        data: {},
-        datacontenttype: 'application/json',
-      }),
-    );
+    resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'evt.handler',
+          subject: 'some',
+          data: {},
+          datacontenttype: 'application/json',
+        }),
+      )
+    )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.{{resource}}.fetch but the provided is evt.handler.',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
-    resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'cmd.weather.fetch',
-        subject: 'some',
-        data: {},
-        datacontenttype: 'application/json',
-      }),
-    );
+    resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'cmd.weather.fetch',
+          subject: 'some',
+          data: {},
+          datacontenttype: 'application/json',
+        }),
+      )
+    )[0];
 
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
@@ -139,17 +151,19 @@ describe('CloudEventHandler Spec', () => {
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
-    resp = await handler.safeCloudevent(
-      new CloudEvent({
-        source: '/test/saad',
-        type: 'cmd.weather.fetch',
-        subject: 'some',
-        data: {
-          date: new Date(),
-        },
-        datacontenttype: 'application/json',
-      }),
-    );
+    resp = (
+      await handler.safeCloudevent(
+        new CloudEvent({
+          source: '/test/saad',
+          type: 'cmd.weather.fetch',
+          subject: 'some',
+          data: {
+            date: new Date(),
+          },
+          datacontenttype: 'application/json',
+        }),
+      )
+    )[0];
 
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
@@ -168,12 +182,14 @@ describe('CloudEventHandler Spec', () => {
 
     let handler = new CloudEventHandler({
       ...params,
-      handler: async ({ data }) => ({
-        type: 'evt.weather.fetch',
-        data: {},
-      }),
+      handler: async ({ data }) => [
+        {
+          type: 'evt.weather.fetch',
+          data: {},
+        },
+      ],
     });
-    let resp = await handler.safeCloudevent(evt);
+    let resp = (await handler.safeCloudevent(evt))[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
@@ -182,12 +198,14 @@ describe('CloudEventHandler Spec', () => {
 
     handler = new CloudEventHandler({
       ...params,
-      handler: async ({ data }) => ({
-        type: 'evt.weather.fetch.success',
-        data: {},
-      }),
+      handler: async ({ data }) => [
+        {
+          type: 'evt.weather.fetch.success',
+          data: {},
+        },
+      ],
     });
-    resp = await handler.safeCloudevent(evt);
+    resp = (await handler.safeCloudevent(evt))[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
@@ -196,18 +214,20 @@ describe('CloudEventHandler Spec', () => {
 
     handler = new CloudEventHandler({
       ...params,
-      handler: async ({ data }) => ({
-        type: 'evt.weather.fetch.success',
-        data: {
-          status: 200,
-          weather: {
-            temperature: 34,
-            unit: 'C',
+      handler: async ({ data }) => [
+        {
+          type: 'evt.weather.fetch.success',
+          data: {
+            status: 200,
+            weather: {
+              temperature: 34,
+              unit: 'C',
+            },
           },
         },
-      }),
+      ],
     });
-    resp = await handler.safeCloudevent(evt);
+    resp = (await handler.safeCloudevent(evt))[0];
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
     expect(resp.eventToEmit.data?.status).toBe(200);
@@ -220,7 +240,7 @@ describe('CloudEventHandler Spec', () => {
         throw new Error('some error');
       },
     });
-    resp = await handler.safeCloudevent(evt);
+    resp = (await handler.safeCloudevent(evt))[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent][handler] Handler errored (message=some error)',

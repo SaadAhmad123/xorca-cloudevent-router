@@ -117,7 +117,7 @@ export default class CloudEventHandler<
   async cloudevent(
     event: CloudEvent<Record<string, any>>,
     spanContext: SpanContext = TraceParent.parse(),
-  ): Promise<CloudEvent<Record<string, any>>> {
+  ): Promise<CloudEvent<Record<string, any>>[]> {
     for (const prop of ['subject', 'type', 'data', 'datacontenttype']) {
       if (!event[prop]) {
         throw new CloudEventHandlerError(
@@ -153,17 +153,19 @@ export default class CloudEventHandler<
       );
     }
 
-    let resp: {
+    let responses: {
       type: string;
       data: Record<string, any>;
-      subject?: string,
-      source?: string
-    } = {
-      type: '',
-      data: {},
-    };
+      subject?: string;
+      source?: string;
+    }[] = [
+      {
+        type: '',
+        data: {},
+      },
+    ];
     try {
-      resp = await this.params.handler({
+      responses = await this.params.handler({
         type: type as TAcceptType,
         data: data || {},
         params: matchResp.result,
@@ -182,39 +184,43 @@ export default class CloudEventHandler<
       );
     }
 
-    const respEvent = this.params.emits.filter(
-      (item) => matchStringTemplate(resp.type, item.type).matched,
-    );
-
-    if (!respEvent.length) {
-      throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=${resp.type} does not match any of the provided in 'emits'`,
-        event,
-        { handlerResponse: resp },
+    return responses.map((resp) => {
+      const respEvent = this.params.emits.filter(
+        (item) => matchStringTemplate(resp.type, item.type).matched,
       );
-    }
 
-    const parseResp = respEvent[0].zodSchema.safeParse(resp.data);
-    if (!parseResp.success) {
-      throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=${resp.type} expected data shape`,
-        event,
-        {
-          handlerResponse: resp,
-          error: parseResp.error.message,
-          issues: parseResp.error.issues,
-        },
-      );
-    }
+      if (!respEvent.length) {
+        throw new CloudEventHandlerError(
+          `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=${resp.type} does not match any of the provided in 'emits'`,
+          event,
+          { handlerResponse: resp },
+        );
+      }
 
-    return new CloudEvent<Record<string, any>>({
-      type: resp.type,
-      data: resp.data,
-      subject: resp.subject || subject,
-      source: encodeURIComponent(resp.source || this.params.name || this.topic),
-      datacontenttype,
-      traceparent: TraceParent.create.traceparent(spanContext),
-      tracestate: spanContext.traceState || '',
+      const parseResp = respEvent[0].zodSchema.safeParse(resp.data);
+      if (!parseResp.success) {
+        throw new CloudEventHandlerError(
+          `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=${resp.type} expected data shape`,
+          event,
+          {
+            handlerResponse: resp,
+            error: parseResp.error.message,
+            issues: parseResp.error.issues,
+          },
+        );
+      }
+
+      return new CloudEvent<Record<string, any>>({
+        type: resp.type,
+        data: resp.data,
+        subject: resp.subject || subject,
+        source: encodeURIComponent(
+          resp.source || this.params.name || this.topic,
+        ),
+        datacontenttype,
+        traceparent: TraceParent.create.traceparent(spanContext),
+        tracestate: spanContext.traceState || '',
+      });
     });
   }
 
@@ -224,19 +230,23 @@ export default class CloudEventHandler<
    * @param event - The CloudEvent to be processed.
    * @returns A Promise resolving to the emitted CloudEvent or an error CloudEvent.
    */
-  async safeCloudevent(event: CloudEvent<Record<string, any>>): Promise<{
-    success: boolean;
-    eventToEmit: CloudEvent<Record<string, any>>;
-    error?: CloudEventHandlerError;
-  }> {
+  async safeCloudevent(event: CloudEvent<Record<string, any>>): Promise<
+    {
+      success: boolean;
+      eventToEmit: CloudEvent<Record<string, any>>;
+      error?: CloudEventHandlerError;
+    }[]
+  > {
     const start = performance.now();
     const spanContext: SpanContext = TraceParent.parse(
       (event.traceparent || '') as string,
       (event.tracestate || '') as string,
     );
-    let success = false;
-    let eventToEmit: CloudEvent<Record<string, any>>;
-    let error: Error | undefined = undefined;
+    let responses: {
+      success: boolean;
+      eventToEmit: CloudEvent<Record<string, any>>;
+      error?: CloudEventHandlerError;
+    }[] = [];
     try {
       await this.logger({
         type: 'START',
@@ -249,52 +259,62 @@ export default class CloudEventHandler<
         },
         startTime: start,
       });
-      eventToEmit = await this.cloudevent(event, spanContext);
-      success = true;
+      responses = (await this.cloudevent(event, spanContext)).map((item) => ({
+        success: true,
+        eventToEmit: item,
+      }));
     } catch (e) {
-      error = e as Error;
       await this.logger({
         type: 'ERROR',
         source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
         spanContext,
-        error,
+        error: e as Error,
         input: {
           ...event.toJSON(),
           type: event.type,
           data: event.data as Record<string, any>,
         },
       });
-      eventToEmit = new CloudEvent({
-        source: encodeURIComponent(this.params.name || this.topic),
-        type: `sys.${this.params.name}.error`,
-        subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
-        data: {
-          errorName: (e as CloudEventHandlerError).name,
-          errorStack: (e as CloudEventHandlerError).stack,
-          errorMessage: (e as CloudEventHandlerError).message,
-          additional: (e as CloudEventHandlerError).additional,
-          event: (e as CloudEventHandlerError).event,
-        },
-        datacontenttype: 'application/json',
-        traceparent: TraceParent.create.traceparent(spanContext),
-        tracestate: spanContext.traceState || '',
+      responses.push({
+        success: false,
+        eventToEmit: new CloudEvent({
+          source: encodeURIComponent(this.params.name || this.topic),
+          type: `sys.${this.params.name}.error`,
+          subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
+          data: {
+            errorName: (e as CloudEventHandlerError).name,
+            errorStack: (e as CloudEventHandlerError).stack,
+            errorMessage: (e as CloudEventHandlerError).message,
+            additional: (e as CloudEventHandlerError).additional,
+            event: (e as CloudEventHandlerError).event,
+          },
+          datacontenttype: 'application/json',
+          traceparent: TraceParent.create.traceparent(spanContext),
+          tracestate: spanContext.traceState || '',
+        }),
+        error: e as Error,
       });
     }
     const endTime = performance.now();
-    await this.logger({
-      type: 'END',
-      source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
-      spanContext,
-      output: {
-        ...eventToEmit.toJSON(),
-        type: eventToEmit.type,
-        data: eventToEmit.data as Record<string, any>,
-      },
-      startTime: start,
-      endTime,
-      duration: endTime - start,
-    });
-    return { success, eventToEmit };
+    await Promise.all(
+      responses.map(
+        async ({ eventToEmit }) =>
+          await this.logger({
+            type: 'END',
+            source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
+            spanContext,
+            output: {
+              ...eventToEmit.toJSON(),
+              type: eventToEmit.type,
+              data: eventToEmit.data as Record<string, any>,
+            },
+            startTime: start,
+            endTime,
+            duration: endTime - start,
+          }),
+      ),
+    );
+    return responses;
   }
 
   private makeEventSchema(

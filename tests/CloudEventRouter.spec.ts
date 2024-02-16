@@ -42,12 +42,14 @@ const summaryHandler = new CloudEventHandler({
       }),
     },
   ],
-  handler: async ({ data }) => ({
-    type: 'evt.gpt.summary.success',
-    data: {
-      summary: 'the summary',
+  handler: async ({ data }) => [
+    {
+      type: 'evt.gpt.summary.success',
+      data: {
+        summary: 'the summary',
+      },
     },
-  }),
+  ],
 });
 
 const handlers = [bookFetchHandler, summaryHandler];
@@ -108,7 +110,6 @@ describe('CloudEventRouter spec', () => {
         datacontenttype: 'application/json',
       }),
     ]);
-
     expect(resp.length).toBe(1);
     expect(resp.filter((item) => item.success === false).length).toBe(1);
     expect(
@@ -118,7 +119,7 @@ describe('CloudEventRouter spec', () => {
       resp.filter(
         (item) =>
           item.errorMessage ===
-          'CloudEventRouterError: [CloudEventRouter][cloudevents] No handler found for event.type=evt.books.fetch. The accepts type are: cmd.gpt.summary, cmd.{{resource}}.fetch',
+          '[CloudEventRouter][cloudevents] No handler found for event.type=evt.books.fetch. The accepts type are: cmd.gpt.summary, cmd.{{resource}}.fetch',
       ).length,
     ).toBe(1);
   });
@@ -144,12 +145,14 @@ describe('CloudEventRouter spec', () => {
       handlers: [
         new CloudEventHandler({
           ...bookFetchHandler.toDict(),
-          handler: async ({ data }) => ({
-            type: 'evt.books.fetch.success',
-            data: {
-              something: 'wrong',
+          handler: async ({ data }) => [
+            {
+              type: 'evt.books.fetch.success',
+              data: {
+                something: 'wrong',
+              },
             },
-          }),
+          ],
         }),
       ],
     });

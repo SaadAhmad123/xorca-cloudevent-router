@@ -59,56 +59,50 @@ export default class CloudEventRouter {
     return (
       await Promise.all(
         events.map(async (item) => {
-          const matchTemplateResp = matchTemplates(item.type, handlerKeys);
-          if (!matchTemplateResp) {
-            if (!errorOnNotFound) return undefined;
-            const error = new CloudEventRouterError(
-              `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}. The accepts type are: ${handlerKeys.join(', ')}`,
-            );
-            return {
-              event: item,
-              success: false,
-              errorMessage: error.toString(),
-              errorStack: error.stack,
-              errorType: error.name,
-              eventToEmit: undefined,
-            };
-          }
           try {
-            const resp = await timedPromise(
+            const matchTemplateResp = matchTemplates(item.type, handlerKeys);
+            if (!matchTemplateResp) {
+              if (!errorOnNotFound) return [];
+              throw new CloudEventRouterError(
+                `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}. The accepts type are: ${handlerKeys.join(', ')}`,
+              );
+            }
+            const responses = await timedPromise(
               () =>
                 this.handlerMap[
                   matchTemplateResp.matchedTemplate
                 ].safeCloudevent(item),
               timeoutMs,
             )();
-            return {
+            return responses.map((resp) => ({
               event: item,
               success: resp.success,
               eventToEmit: resp.eventToEmit,
-            };
+            }));
           } catch (error) {
-            return {
-              event: item,
-              success: false,
-              errorMessage: `[CloudEventRouter][Timeout=${timeoutMs}]${error?.toString()}`,
-              errorStack: (error as Error)?.stack,
-              errorType: `[CloudEventRouter][Timeout]`,
-            };
+            return [
+              {
+                event: item,
+                success: false,
+                errorMessage: (error as Error)?.message,
+                errorStack: (error as Error)?.stack,
+                errorType: (error as Error)?.name,
+              },
+            ];
           }
         }),
       )
-    ).filter((item) => Boolean(item)) as Array<{
-      event: CloudEvent<Record<string, any>>;
-      success: boolean;
-      errorMessage?: string;
-      errorStack?: string;
-      errorType?:
-        | 'PromiseTimeoutError'
-        | 'CloudEventHandlerError'
-        | 'CloudEventRouterError';
-      eventToEmit?: CloudEvent<Record<string, any>>;
-    }>;
+    ).reduce(
+      (acc, cur) => [...acc, ...cur],
+      [] as {
+        event: CloudEvent<Record<string, any>>;
+        success: boolean;
+        errorMessage?: string;
+        errorStack?: string;
+        errorType?: string;
+        eventToEmit?: CloudEvent<Record<string, any>>;
+      }[],
+    );
   }
 
   /**
