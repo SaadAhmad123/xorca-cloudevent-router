@@ -173,6 +173,7 @@ export default class CloudEventHandler<
         logger: async (logParams: ILogger) => {
           await this.logger(logParams);
         },
+        event,
       });
     } catch (e) {
       throw new CloudEventHandlerError(

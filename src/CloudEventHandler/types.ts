@@ -1,5 +1,6 @@
 import * as zod from 'zod';
 import { SpanContext } from '../openTelemetry/Span/types';
+import { CloudEvent } from 'cloudevents';
 
 export type LogType = 'START' | 'END' | 'ERROR' | 'WARNING' | 'LOG' | 'DEBUG';
 
@@ -110,6 +111,8 @@ export interface ICloudEventHandler<
     spanContext: SpanContext;
     // Passed thorough logger;
     logger: Logger;
+    // The original cloud event
+    event: CloudEvent<Record<string, any>>
   }) => Promise<
     {
       type: TEmitType;
