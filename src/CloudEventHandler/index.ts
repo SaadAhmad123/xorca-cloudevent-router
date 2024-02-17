@@ -43,7 +43,7 @@ export default class CloudEventHandler<
    * @param params - Parameters for configuring the CloudEventHandler.
    * @throws {CloudEventHandlerError} - Throws an error if the 'name' contains spaces or special characters.
    */
-  constructor(private params: ICloudEventHandler<TAcceptType, TEmitType>) {
+  constructor(protected params: ICloudEventHandler<TAcceptType, TEmitType>) {
     this.params.name = this.params.name || this.topic;
     if (this.params.name.includes(' ')) {
       throw new CloudEventHandlerError(

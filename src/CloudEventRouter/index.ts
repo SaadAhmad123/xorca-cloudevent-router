@@ -15,14 +15,14 @@ import * as zod from 'zod';
  * });
  */
 export default class CloudEventRouter {
-  private handlerMap: Record<string, CloudEventHandler<string, string>> = {};
+  protected handlerMap: Record<string, CloudEventHandler<string, string>> = {};
 
   /**
    * Creates an instance of CloudEventRouter.
    * @param params - Parameters for configuring the CloudEventRouter.
    * @throws {Error} - Throws an error if there are duplicate 'accepts.type' values among the provided handlers.
    */
-  constructor(private params: ICloudEventRouter) {
+  constructor(protected params: ICloudEventRouter) {
     if (
       this.params.handlers.length !==
       Array.from(new Set(this.params.handlers.map((item) => item.topic))).length
