@@ -20,7 +20,7 @@ describe('createHttpHandler test', () => {
         type: 'cmd.ntk.openai.completion',
         source: '/test',
         subject: '1234',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
         data: {
           method: 'POST',
           url: 'https://api.openai.com/v1/chat/completions',
@@ -58,7 +58,7 @@ describe('createHttpHandler test', () => {
         type: 'cmd.ntk.openai.completion',
         source: '/test',
         subject: '1234',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
         data: {
           method: 'POST',
           url: 'https://api.openai.com/v1/chat/completions',
@@ -98,7 +98,7 @@ describe('createHttpHandler test', () => {
         type: 'cmd.ntk.openai.completion',
         source: '/test',
         subject: '1234',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
         data: {
           method: 'SOMETHING',
           url: 'https://api.openai.com/v1/chat/completions',

@@ -127,9 +127,9 @@ export default class CloudEventHandler<
       }
     }
     const { subject, type, data, datacontenttype } = event;
-    if (![datacontenttype].includes('application/json')) {
+    if (!(datacontenttype || '').includes('application/cloudevents+json')) {
       throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/json' but the provided is ${datacontenttype}`,
+        `[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/cloudevents+json; charset=UTF-8' but the provided is ${datacontenttype}`,
         event,
       );
     }
@@ -288,7 +288,7 @@ export default class CloudEventHandler<
             additional: (e as CloudEventHandlerError).additional,
             event: (e as CloudEventHandlerError).event,
           },
-          datacontenttype: 'application/json',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
           traceparent: TraceParent.create.traceparent(spanContext),
           tracestate: spanContext.traceState || '',
         }),
@@ -332,9 +332,9 @@ export default class CloudEventHandler<
             .describe('The source of the event'),
           data: data,
           datacontenttype: zod
-            .literal('application/json')
+            .literal('application/cloudevents+json; charset=UTF-8')
             .describe(
-              "Must be either 'application/json' or 'application/json; charset=utf-8'",
+              "Must be either 'application/cloudevents+json; charset=UTF-8'",
             ),
           traceparent: zod
             .string()
@@ -371,7 +371,7 @@ export default class CloudEventHandler<
       statusCode: 200,
       headers: zodToJsonSchema(
         zod.object({
-          'content-type': zod.literal('application/json'),
+          'content-type': zod.literal('application/cloudevents+json; charset=UTF-8'),
         }),
       ),
       bindingVersion: '0.3.0',
@@ -387,7 +387,7 @@ export default class CloudEventHandler<
             [this.params.accepts.type]: {
               name: this.params.accepts.type,
               description: this.params.accepts.description,
-              contentType: 'application/json',
+              contentType: 'application/cloudevents+json; charset=UTF-8',
               payload: this.makeEventSchema(
                 this.params.accepts.type,
                 this.params.accepts.zodSchema,
@@ -408,7 +408,7 @@ export default class CloudEventHandler<
                 [item.type]: {
                   name: item.type,
                   description: item.description,
-                  contentType: 'application/json',
+                  contentType: 'application/cloudevents+json; charset=UTF-8',
                   payload: this.makeEventSchema(
                     item.type,
                     item.zodSchema,

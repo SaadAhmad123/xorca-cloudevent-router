@@ -68,7 +68,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
       new CloudEvent({
         subject: 'saad',
@@ -77,7 +77,7 @@ describe('CloudEventRouter spec', () => {
           content: 'content to look at',
         },
         source: '/test',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
     ]);
     expect(resp.length).toBe(2);
@@ -107,7 +107,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -164,7 +164,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -202,7 +202,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -241,7 +241,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/json',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
     ]);
     expect(resp.length).toBe(1);

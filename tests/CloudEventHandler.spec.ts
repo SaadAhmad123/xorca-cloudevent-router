@@ -112,7 +112,7 @@ describe('CloudEventHandler Spec', () => {
     )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
-      "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/json' but the provided is application",
+      "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/cloudevents+json; charset=UTF-8' but the provided is application",
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
@@ -123,7 +123,7 @@ describe('CloudEventHandler Spec', () => {
           type: 'evt.handler',
           subject: 'some',
           data: {},
-          datacontenttype: 'application/json',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
         }),
       )
     )[0];
@@ -140,7 +140,7 @@ describe('CloudEventHandler Spec', () => {
           type: 'cmd.weather.fetch',
           subject: 'some',
           data: {},
-          datacontenttype: 'application/json',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
         }),
       )
     )[0];
@@ -160,7 +160,7 @@ describe('CloudEventHandler Spec', () => {
           data: {
             date: new Date(),
           },
-          datacontenttype: 'application/json',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
         }),
       )
     )[0];
@@ -177,7 +177,7 @@ describe('CloudEventHandler Spec', () => {
       data: {
         date: new Date(),
       },
-      datacontenttype: 'application/json',
+      datacontenttype: 'application/cloudevents+json; charset=UTF-8',
     });
 
     let handler = new CloudEventHandler({
@@ -282,9 +282,9 @@ describe('CloudEventHandler Spec', () => {
           },
           datacontenttype: {
             type: 'string',
-            const: 'application/json',
+            const: 'application/cloudevents+json; charset=UTF-8',
             description:
-              "Must be either 'application/json' or 'application/json; charset=utf-8'",
+              "Must be either 'application/cloudevents+json; charset=UTF-8'",
           },
           traceparent: {
             type: 'string',
@@ -346,9 +346,9 @@ describe('CloudEventHandler Spec', () => {
             },
             datacontenttype: {
               type: 'string',
-              const: 'application/json',
+              const: 'application/cloudevents+json; charset=UTF-8',
               description:
-                "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                "Must be either 'application/cloudevents+json; charset=UTF-8'",
             },
             traceparent: {
               type: 'string',
@@ -399,9 +399,9 @@ describe('CloudEventHandler Spec', () => {
             },
             datacontenttype: {
               type: 'string',
-              const: 'application/json',
+              const: 'application/cloudevents+json; charset=UTF-8',
               description:
-                "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                "Must be either 'application/cloudevents+json; charset=UTF-8'",
             },
             traceparent: {
               type: 'string',
@@ -465,9 +465,9 @@ describe('CloudEventHandler Spec', () => {
             },
             datacontenttype: {
               type: 'string',
-              const: 'application/json',
+              const: 'application/cloudevents+json; charset=UTF-8',
               description:
-                "Must be either 'application/json' or 'application/json; charset=utf-8'",
+                "Must be either 'application/cloudevents+json; charset=UTF-8'",
             },
             traceparent: {
               type: 'string',
