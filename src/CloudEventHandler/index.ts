@@ -76,7 +76,7 @@ export default class CloudEventHandler<
           additional: zod.any().describe('The error additional error data'),
         }),
         description:
-          "Event raised when error happens while using 'safeCloudevent' method",
+          "Event raised when error happens while using 'safeCloudevent' method. Can happen on invalid events types or some other errors",
       },
     ];
   }

@@ -484,7 +484,7 @@ describe('CloudEventHandler Spec', () => {
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
           additionalProperties: false,
           description:
-            "Event raised when error happens while using 'safeCloudevent' method",
+            "Event raised when error happens while using 'safeCloudevent' method. Can happen on invalid events types or some other errors",
           $schema: 'http://json-schema.org/draft-07/schema#',
         },
       ],

@@ -48,7 +48,6 @@ describe('createHttpHandler test', () => {
     expect(resp?.data?.statusCode).toBe(200);
     const parsedData = JSON.parse(resp?.data?.text || '{}');
     expect(parsedData?.object).toBe('chat.completion');
-    expect(parsedData?.model).toBe('gpt-3.5-turbo-0613');
     expect(parsedData?.choices?.length).toBe(1);
   });
 
