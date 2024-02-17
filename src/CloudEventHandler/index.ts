@@ -295,12 +295,11 @@ export default class CloudEventHandler<
         error: e as Error,
       });
     }
-    const endTime = performance.now();
     await Promise.all(
       responses.map(
         async ({ eventToEmit }) =>
           await this.logger({
-            type: 'END',
+            type: 'LOG',
             source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
             spanContext,
             output: {
@@ -308,12 +307,18 @@ export default class CloudEventHandler<
               type: eventToEmit.type,
               data: eventToEmit.data as Record<string, any>,
             },
-            startTime: start,
-            endTime,
-            duration: endTime - start,
           }),
       ),
     );
+    const endTime = performance.now();
+    await this.logger({
+      type: 'END',
+      source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
+      spanContext,
+      startTime: start,
+      endTime,
+      duration: endTime - start,
+    });
     return responses;
   }
 
@@ -371,7 +376,9 @@ export default class CloudEventHandler<
       statusCode: 200,
       headers: zodToJsonSchema(
         zod.object({
-          'content-type': zod.literal('application/cloudevents+json; charset=UTF-8'),
+          'content-type': zod.literal(
+            'application/cloudevents+json; charset=UTF-8',
+          ),
         }),
       ),
       bindingVersion: '0.3.0',

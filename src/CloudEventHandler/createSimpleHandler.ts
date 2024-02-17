@@ -158,17 +158,22 @@ export default function createSimpleHandler<TName extends string>(
         result.map(
           async (item) =>
             await logger?.({
-              type: 'END',
+              type: 'LOG',
               source: `createSimpleHandler<${params.name}>.handler`,
               spanContext,
               output: item,
-              startTime: start,
-              endTime,
-              duration: endTime - start,
-              params: topicParams,
             }),
         ),
       );
+      await logger?.({
+        type: 'END',
+        source: `createSimpleHandler<${params.name}>.handler`,
+        spanContext,
+        startTime: start,
+        endTime,
+        duration: endTime - start,
+        params: topicParams,
+      });
       return result;
     },
   });
