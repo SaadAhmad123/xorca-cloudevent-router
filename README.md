@@ -41,7 +41,7 @@ The `CloudEventHandler` class facilitates the creation of an asynchronous handle
 ```json
 {
   "subject": "some string",
-  "datacontenttype": "application/json",
+  "datacontenttype": "application/cloudevents+json; charset=UTF-8",
   "source": "some string",
   "type": "the name/topic of the event, e.g., cmd.books.fetch or evt.books.fetch.success",
   "data": {
@@ -130,7 +130,7 @@ const {
     data: {
         bookId: "1234.pdf",
     },
-    datacontenttype: "application/json",
+    datacontenttype: "application/cloudevents+json; charset=UTF-8",
     subject: "subject_string",
     source: "/test",
 }))
@@ -201,7 +201,7 @@ const {
     data: {
       bookId: '1234.pdf',
     },
-    datacontenttype: 'application/json',
+    datacontenttype: 'application/cloudevents+json; charset=UTF-8',
     subject: 'subject_string',
     source: '/test',
   }),
