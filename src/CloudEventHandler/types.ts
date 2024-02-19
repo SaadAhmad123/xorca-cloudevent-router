@@ -112,13 +112,17 @@ export interface ICloudEventHandler<
     // Passed thorough logger;
     logger: Logger;
     // The original cloud event
-    event: CloudEvent<Record<string, any>>
+    event: CloudEvent<Record<string, any>>;
   }) => Promise<
     {
       type: TEmitType;
       data: Record<string, any>;
+      // The subject override
       subject?: string;
+      // The source override
       source?: string;
+      // The orchestrator name override
+      orchestrator?: string;
     }[]
   >;
 

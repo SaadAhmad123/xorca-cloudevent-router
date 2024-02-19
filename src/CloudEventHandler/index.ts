@@ -158,6 +158,7 @@ export default class CloudEventHandler<
       data: Record<string, any>;
       subject?: string;
       source?: string;
+      orchestrator?: string;
     }[] = [
       {
         type: '',
@@ -215,12 +216,14 @@ export default class CloudEventHandler<
         type: resp.type,
         data: resp.data,
         subject: resp.subject || subject,
+        orchestrator: resp.orchestrator || event.orchestrator || null,
         source: encodeURIComponent(
           resp.source || this.params.name || this.topic,
         ),
         datacontenttype,
         traceparent: TraceParent.create.traceparent(spanContext),
         tracestate: spanContext.traceState || '',
+        time: new Date().toISOString(),
       });
     });
   }
@@ -292,6 +295,8 @@ export default class CloudEventHandler<
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
           traceparent: TraceParent.create.traceparent(spanContext),
           tracestate: spanContext.traceState || '',
+          time: new Date().toISOString(),
+          orchestrator: event.orchestrator || null,
         }),
         error: e as Error,
       });
@@ -331,6 +336,7 @@ export default class CloudEventHandler<
     return zodToJsonSchema(
       zod
         .object({
+          id: zod.string().optional().describe('A UUID of this event'),
           subject: zod.string().describe('The subject of the event'),
           type: zod.literal(type).describe('The topic of the event'),
           source: zod
@@ -358,6 +364,12 @@ export default class CloudEventHandler<
             .optional()
             .describe(
               'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
+            ),
+          orchestrator: zod
+            .string()
+            .optional()
+            .describe(
+              'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
             ),
         })
         .describe(

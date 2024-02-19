@@ -65,11 +65,13 @@ describe('CloudEventHandler Spec', () => {
         new CloudEvent({
           source: '/test/saad',
           type: 'evt.handler',
+          orchestrator: 'testorch',
         }),
       )
     )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
 
     resp = (
       await handler.safeCloudevent(
@@ -77,11 +79,13 @@ describe('CloudEventHandler Spec', () => {
           source: '/test/saad',
           type: 'evt.handler',
           subject: 'some',
+          orchestrator: 'testorch',
         }),
       )
     )[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
 
     resp = (
       await handler.safeCloudevent(
@@ -90,6 +94,7 @@ describe('CloudEventHandler Spec', () => {
           type: 'evt.handler',
           subject: 'some',
           data: {},
+          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -97,6 +102,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The datacontenttype MUST be provided.',
     );
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
@@ -107,6 +113,7 @@ describe('CloudEventHandler Spec', () => {
           subject: 'some',
           data: {},
           datacontenttype: 'application',
+          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -115,6 +122,7 @@ describe('CloudEventHandler Spec', () => {
       "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/cloudevents+json; charset=UTF-8' but the provided is application",
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
 
     resp = (
       await handler.safeCloudevent(
@@ -124,6 +132,7 @@ describe('CloudEventHandler Spec', () => {
           subject: 'some',
           data: {},
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -132,6 +141,7 @@ describe('CloudEventHandler Spec', () => {
       '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.{{resource}}.fetch but the provided is evt.handler.',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
 
     resp = (
       await handler.safeCloudevent(
@@ -141,6 +151,7 @@ describe('CloudEventHandler Spec', () => {
           subject: 'some',
           data: {},
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -150,6 +161,7 @@ describe('CloudEventHandler Spec', () => {
       '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.{{resource}}.fetch expected data shape',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
 
     resp = (
       await handler.safeCloudevent(
@@ -161,12 +173,14 @@ describe('CloudEventHandler Spec', () => {
             date: new Date(),
           },
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+          orchestrator: 'testorch',
         }),
       )
     )[0];
 
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
+    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
   });
 
   it('Should throw an error if handler returns invalid data', async () => {
@@ -195,6 +209,7 @@ describe('CloudEventHandler Spec', () => {
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe(null);
 
     handler = new CloudEventHandler({
       ...params,
@@ -211,6 +226,7 @@ describe('CloudEventHandler Spec', () => {
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit?.orchestrator).toBe(null);
 
     handler = new CloudEventHandler({
       ...params,
@@ -224,6 +240,7 @@ describe('CloudEventHandler Spec', () => {
               unit: 'C',
             },
           },
+          orchestrator: 'sometest'
         },
       ],
     });
@@ -233,6 +250,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.data?.status).toBe(200);
     expect(resp.eventToEmit.data?.weather?.temperature).toBe(34);
     expect(resp.eventToEmit.data?.weather?.unit).toBe('C');
+    expect(resp.eventToEmit?.orchestrator).toBe('sometest');
 
     handler = new CloudEventHandler({
       ...params,
@@ -255,6 +273,10 @@ describe('CloudEventHandler Spec', () => {
       accepts: {
         type: 'object',
         properties: {
+          id: {
+            type: 'string',
+            description: 'A UUID of this event',
+          },
           subject: {
             type: 'string',
             description: 'The subject of the event',
@@ -297,6 +319,11 @@ describe('CloudEventHandler Spec', () => {
             description:
               'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
           },
+          orchestrator: {
+            type: 'string',
+            description:
+              'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+          },
         },
         required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
         additionalProperties: false,
@@ -307,6 +334,10 @@ describe('CloudEventHandler Spec', () => {
         {
           type: 'object',
           properties: {
+            id: {
+              type: 'string',
+              description: 'A UUID of this event',
+            },
             subject: {
               type: 'string',
               description: 'The subject of the event',
@@ -361,6 +392,11 @@ describe('CloudEventHandler Spec', () => {
               description:
                 'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
+            orchestrator: {
+              type: 'string',
+              description:
+                'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+            },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
           additionalProperties: false,
@@ -370,6 +406,10 @@ describe('CloudEventHandler Spec', () => {
         {
           type: 'object',
           properties: {
+            id: {
+              type: 'string',
+              description: 'A UUID of this event',
+            },
             subject: {
               type: 'string',
               description: 'The subject of the event',
@@ -414,6 +454,11 @@ describe('CloudEventHandler Spec', () => {
               description:
                 'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
+            orchestrator: {
+              type: 'string',
+              description:
+                'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+            },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
           additionalProperties: false,
@@ -423,6 +468,10 @@ describe('CloudEventHandler Spec', () => {
         {
           type: 'object',
           properties: {
+            id: {
+              type: 'string',
+              description: 'A UUID of this event',
+            },
             subject: {
               type: 'string',
               description: 'The subject of the event',
@@ -479,6 +528,11 @@ describe('CloudEventHandler Spec', () => {
               type: 'string',
               description:
                 'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
+            },
+            orchestrator: {
+              type: 'string',
+              description:
+                'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
             },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
