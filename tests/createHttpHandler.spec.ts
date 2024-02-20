@@ -49,6 +49,7 @@ describe('createHttpHandler test', () => {
     const parsedData = JSON.parse(resp?.data?.text || '{}');
     expect(parsedData?.object).toBe('chat.completion');
     expect(parsedData?.choices?.length).toBe(1);
+    expect(resp.to).toBe('/test')
   });
 
   it('should fail calling OpenAI api successfully', async () => {
