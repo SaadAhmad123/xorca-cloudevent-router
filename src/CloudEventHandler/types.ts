@@ -105,6 +105,7 @@ export type CloudEventValidationSchema<TType extends string> = {
  * @property {CloudEventValidationSchema<TEmitType>[]} emits - An array of validation schemas for the types of CloudEvents the handler may emit. This array allows a single handler to produce multiple types of events, depending on the processing logic.
  * @property {(event: CloudEventHandlerFunctionInput<TAcceptType, TEventData>) => Promise<CloudEventHandlerFunctionOutput<TEmitType>[]>} handler - A function that processes an incoming CloudEvent and returns a Promise resolving to an array of CloudEvent outputs. This function is where the core logic of event processing and transformation is implemented.
  * @property {Logger} [logger] - An optional logging utility passed to the handler, enabling standardized logging practices. This is particularly useful for debugging, monitoring, and tracing event handling.
+ * @property {boolean} [disableRoutingMetadata] - If set, the output cloudevent `to` and `redirectto` field will be forced to `null`.
  *
  * @example
  * // Example of a CloudEvent handler for user creation events.
@@ -138,6 +139,7 @@ export interface ICloudEventHandler<
     event: CloudEventHandlerFunctionInput<TAcceptType, TEventData>,
   ) => Promise<CloudEventHandlerFunctionOutput<TEmitType>[]>;
   logger?: Logger;
+  disableRoutingMetadata?: boolean;
 }
 
 /**
@@ -158,6 +160,7 @@ export interface ICloudEventHandler<
  * @property {Function} handler - The core function for processing incoming event data, encapsulating the logic for handling and transforming event data based on business requirements.
  * @property {number} [timeoutMs=10000] - Optional. Specifies the timeout duration in milliseconds, defaulting to 10000ms, for managing execution time and resources effectively.
  * @property {Logger} [logger] - Optional. A logging function for logging events, errors, or significant actions, aiding in monitoring and debugging the event handling process.
+ * @property {boolean} [disableRoutingMetadata] - If set, the output cloudevent `to` and `redirectto` field will be forced to `null`.
  */
 export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
   name?: string;
@@ -171,6 +174,7 @@ export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
   ) => Promise<Record<string, any>>;
   timeoutMs?: number;
   logger?: Logger;
+  disableRoutingMetadata?: boolean;
 }
 
 /**
@@ -203,6 +207,7 @@ export type VariableType = {
  * @property {string[]} [whitelistedUrls] - Optional. A list of URLs the handler is permitted to interact with, serving as a security measure to ensure communication only with trusted services. By default, all urls are permitted.
  * @property {number} [timeoutMs=10000] - Optional. Sets the maximum duration in milliseconds for HTTP request completion, defaulting to 10000ms, to prevent indefinite hangs and manage resources.
  * @property {Logger} [logger] - Optional. A logging function for use within the handler for logging purposes, essential for debugging, monitoring, and auditing interactions with external services.
+ * @property {boolean} [disableRoutingMetadata] - If set, the output cloudevent `to` and `redirectto` field will be forced to `null`.
  */
 export interface ICreateHttpCloudEventHandler<TAcceptType extends string> {
   name?: string;
@@ -212,4 +217,5 @@ export interface ICreateHttpCloudEventHandler<TAcceptType extends string> {
   whitelistedUrls?: string[];
   timeoutMs?: number;
   logger?: Logger;
+  disableRoutingMetadata?: boolean;
 }

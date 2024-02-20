@@ -263,10 +263,15 @@ export default class CloudEventHandler<
       incomingEvent.source ||
       null) as string | null;
     return new CloudEvent<Record<string, any>>({
-      to: toField ? encodeURI(toField) : null,
-      redirectto: contentForOutgoingEvent.redirectto
-        ? encodeURI(contentForOutgoingEvent.redirectto)
-        : null,
+      to:
+        !this.params.disableRoutingMetadata && toField
+          ? encodeURI(toField)
+          : null,
+      redirectto:
+        !this.params.disableRoutingMetadata &&
+        contentForOutgoingEvent.redirectto
+          ? encodeURI(contentForOutgoingEvent.redirectto)
+          : null,
       type: contentForOutgoingEvent.type,
       data: contentForOutgoingEvent.data,
       source: encodeURI(
@@ -397,7 +402,7 @@ export default class CloudEventHandler<
         success: false,
         eventToEmit: new CloudEvent({
           // Must go back to the producer incase of error
-          to: encodeURI(event.source),
+          to: !this.params.disableRoutingMetadata ? encodeURI(event.source) : null,
           redirectto: null,
           source: encodeURI(this.params.name || this.topic),
           type: `sys.${this.params.name || this.topic}.error`,
