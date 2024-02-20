@@ -51,7 +51,7 @@ describe('createHttpHandler test', () => {
     expect(parsedData?.object).toBe('chat.completion');
     expect(parsedData?.choices?.length).toBe(1);
     expect(resp.to).toBe('/test');
-  });
+  }, 100000);
 
   it('should fail calling OpenAI api successfully', async () => {
     const resps = await openAiHttpHandler.cloudevent(

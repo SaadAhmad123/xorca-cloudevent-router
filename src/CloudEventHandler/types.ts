@@ -149,10 +149,10 @@ export interface ICloudEventHandler<
  *
  * @template TAcceptType - A string literal representing the unique name of the CloudEventHandler, descriptive of its function.
  *
- * @property {string} name - The unique name of the CloudEventHandler.
+ * @property {string} [name] - The unique name of the CloudEventHandler. Default is `cmd.${accepts.type}`
  * @property {string} [description] - An optional, human-readable description of the CloudEventHandler's role or the types of events it handles. Provides additional context for developers.
  * @property {CloudEventValidationSchema<TAcceptType>} accepts - A validation schema defining the structure of events this handler can process, ensuring type safety and data integrity.
- * @property {string} accepts.type - The unique topic of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${name}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
+ * @property {string} accepts.type - The unique topic of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${accepts.type}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
  * @property {zod.ZodObject<any>} accepts.zodSchema - The zod schema
  * @property {zod.ZodObject<any>} emits - A Zod validation schema for the events that this handler may emit as a result of processing, ensuring consistency and reliability in event communication.
  * @property {Function} handler - The core function for processing incoming event data, encapsulating the logic for handling and transforming event data based on business requirements.
@@ -160,7 +160,7 @@ export interface ICloudEventHandler<
  * @property {Logger} [logger] - Optional. A logging function for logging events, errors, or significant actions, aiding in monitoring and debugging the event handling process.
  */
 export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
-  name: string;
+  name?: string;
   description?: string;
   accepts: CloudEventValidationSchema<TAcceptType>;
   emits: zod.ZodObject<any>;
@@ -196,8 +196,8 @@ export type VariableType = {
  *
  * @template TAcceptType - A string literal representing the unique name of the CloudEventHandler, ideally reflecting its role or the HTTP services it interacts with.
  *
- * @property {string} name - The unique name of the CloudEventHandler.
- * @property {string} acceptType - The unique topic of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${name}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
+ * @property {string} [name] - The unique name of the CloudEventHandler. Default is `cmd.${acceptType}`
+ * @property {string} acceptType - The unique topic of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${acceptType}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
  * @property {string} [description] - An optional description providing context about the handler's functionality or the types of HTTP requests it manages, enhancing understanding of the handler's role.
  * @property {Record<string, VariableType>} [variables] - Optional. Maps variable names to values and secrecy flags, crucial for secure handling of sensitive configuration like API keys.
  * @property {string[]} [whitelistedUrls] - Optional. A list of URLs the handler is permitted to interact with, serving as a security measure to ensure communication only with trusted services. By default, all urls are permitted.
@@ -205,7 +205,7 @@ export type VariableType = {
  * @property {Logger} [logger] - Optional. A logging function for use within the handler for logging purposes, essential for debugging, monitoring, and auditing interactions with external services.
  */
 export interface ICreateHttpCloudEventHandler<TAcceptType extends string> {
-  name: string;
+  name?: string;
   acceptType: TAcceptType;
   description?: string;
   variables?: Record<string, VariableType>;
