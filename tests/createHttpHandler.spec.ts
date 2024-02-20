@@ -122,7 +122,7 @@ describe('createHttpHandler test', () => {
     );
     const { success, eventToEmit: resp, error } = resps[0];
     expect(success).toBe(false);
-    expect(resp.type).toBe('sys.ntk.{{response}}.error');
+    expect(resp.type).toBe('sys.cmd.ntk.{{response}}.error');
     expect(resp?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.ntk.{{response}} expected data shape',
     );

@@ -205,3 +205,10 @@ export function insertHyphen(inputString: string, position: number): string {
     inputString.slice(0, position) + '-' + inputString.slice(position);
   return hyphenatedString;
 }
+
+export function cleanString(s: string): string {
+  return s
+    .split('\n')
+    .map((item) => item.trim())
+    .join('\n');
+}

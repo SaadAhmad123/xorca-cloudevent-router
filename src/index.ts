@@ -6,6 +6,8 @@ import {
   Logger,
   ILogger,
   LogType,
+  CloudEventHandlerFunctionInput,
+  CloudEventHandlerFunctionOutput,
 } from './CloudEventHandler/types';
 
 import createSimpleHandler from './CloudEventHandler/createSimpleHandler';
@@ -19,6 +21,8 @@ import TraceParent from './openTelemetry/traceparent';
 
 export {
   CloudEventHandler,
+  CloudEventHandlerFunctionInput,
+  CloudEventHandlerFunctionOutput,
   CloudEventRouter,
   CloudEventHandlerError,
   CloudEventRouterError,

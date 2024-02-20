@@ -65,27 +65,26 @@ describe('CloudEventHandler Spec', () => {
         new CloudEvent({
           source: '/test/saad',
           type: 'evt.handler',
-          orchestrator: 'testorch',
         }),
       )
     )[0];
     expect(resp.success).toBe(false);
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.to).toBe('/test/saad');
 
     resp = (
       await handler.safeCloudevent(
         new CloudEvent({
           source: '/test/saad',
+          redirectto: '/test/saad/1',
           type: 'evt.handler',
           subject: 'some',
-          orchestrator: 'testorch',
         }),
       )
     )[0];
     expect(resp.success).toBe(false);
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.to).toBe('/test/saad');
 
     resp = (
       await handler.safeCloudevent(
@@ -94,7 +93,6 @@ describe('CloudEventHandler Spec', () => {
           type: 'evt.handler',
           subject: 'some',
           data: {},
-          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -102,8 +100,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The datacontenttype MUST be provided.',
     );
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -113,7 +110,6 @@ describe('CloudEventHandler Spec', () => {
           subject: 'some',
           data: {},
           datacontenttype: 'application',
-          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -121,8 +117,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/cloudevents+json; charset=UTF-8' but the provided is application",
     );
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -132,7 +127,6 @@ describe('CloudEventHandler Spec', () => {
           subject: 'some',
           data: {},
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
-          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -140,8 +134,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.{{resource}}.fetch but the provided is evt.handler.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -151,7 +144,6 @@ describe('CloudEventHandler Spec', () => {
           subject: 'some',
           data: {},
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
-          orchestrator: 'testorch',
         }),
       )
     )[0];
@@ -160,8 +152,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.{{resource}}.fetch expected data shape',
     );
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -173,14 +164,13 @@ describe('CloudEventHandler Spec', () => {
             date: new Date(),
           },
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
-          orchestrator: 'testorch',
         }),
       )
     )[0];
 
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
-    expect(resp.eventToEmit?.orchestrator).toBe('testorch');
+    expect(resp.eventToEmit.to).toBe('/test/saad');
   });
 
   it('Should throw an error if handler returns invalid data', async () => {
@@ -192,6 +182,7 @@ describe('CloudEventHandler Spec', () => {
         date: new Date(),
       },
       datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+      redirectto: '/test/saad/1',
     });
 
     let handler = new CloudEventHandler({
@@ -208,8 +199,8 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
     );
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe(null);
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.to).toBe('/test/saad');
 
     handler = new CloudEventHandler({
       ...params,
@@ -225,8 +216,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
     );
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
-    expect(resp.eventToEmit?.orchestrator).toBe(null);
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
 
     handler = new CloudEventHandler({
       ...params,
@@ -240,7 +230,6 @@ describe('CloudEventHandler Spec', () => {
               unit: 'C',
             },
           },
-          orchestrator: 'sometest'
         },
       ],
     });
@@ -250,7 +239,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.data?.status).toBe(200);
     expect(resp.eventToEmit.data?.weather?.temperature).toBe(34);
     expect(resp.eventToEmit.data?.weather?.unit).toBe('C');
-    expect(resp.eventToEmit?.orchestrator).toBe('sometest');
+    expect(resp.eventToEmit.to).toBe('/test/saad/1');
 
     handler = new CloudEventHandler({
       ...params,
@@ -263,7 +252,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent][handler] Handler errored (message=some error)',
     );
-    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
   });
 
   it('should return a interface with input and output schemas', () => {
@@ -288,8 +277,9 @@ describe('CloudEventHandler Spec', () => {
           },
           source: {
             type: 'string',
-            const: '%7B%7Bresource%7D%7D.fetch',
-            description: 'The source of the event',
+            const: 'cmd.%7B%7Bresource%7D%7D.fetch',
+            description:
+              'The source of the event. It may be in rare cases overriden to due to the handler function behavior. This is not recommended in most cases.',
           },
           data: {
             type: 'object',
@@ -319,10 +309,15 @@ describe('CloudEventHandler Spec', () => {
             description:
               'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
           },
-          orchestrator: {
+          to: {
             type: 'string',
             description:
-              'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+              "\n**URI reference so encoded via encodeURI**\nSpecifies the intended initial recipient(s) or destination topic(s) for the event.\nThis field acts as metadata to assist in the event routing process, indicating where\nthe event should be initially directed. While optional, specifying this field can\nsignificantly enhance routing precision and efficiency within event brokers or middleware,\nguiding the event toward the appropriate service or component for initial processing. It is\nespecially useful in complex distributed systems where events may be handled by multiple\nservices or in multi-step workflows.\n\nThe logic for determining its value here is as follows:\n- For successful events, the system first looks for a value specified in the handler's return (Return<handler>.to). If not provided, it then considers the incomingEvent.redirectTo field, which indicates where the event should be directed after initial processing. If this is also absent, it falls back to the incomingEvent.source, essentially directing the event back to its originator. If none of these fields provide a directive, the to field is set to null, indicating no specific routing is required.\n- For error events, the to field is explicitly set to the event's source (incomingEvent.source). This ensures that error notifications are directed back to the event producer or the system component responsible for the event, allowing for the acknowledgment of the error and potential corrective actions.\n",
+          },
+          redirectTo: {
+            type: 'string',
+            description:
+              '\n**URI reference so encoded via encodeURI**\nIndicates an alternative or subsequent recipient(s) or destination topic(s) for the event,\nsuggesting where the event should be forwarded after initial processing. Like the "to" field,\n"redirectTo" is metadata that can be leveraged to dynamically alter the event\'s routing path,\nfacilitating complex workflows or multi-stage processing scenarios. It allows for the decoupling\nof event production from consumption, enabling flexible, dynamic routing without requiring the\nevent producer to be aware of the full processing pipeline.\n\nThe logic for determining its value here is as follows:\n- For successful events, the redirectTo value is taken directly from Return<handler>.redirectTo. This allows event handlers to dynamically alter the event\'s routing path based on processing outcomes, facilitating complex workflows or conditional processing scenarios.\n- For error events, the redirectTo field is set to null. This decision is made to halt further automatic redirection of error notifications, ensuring that error events are not inadvertently routed through the system but are instead directed to a specific handler or service for error handling and logging.\n',
           },
         },
         required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
@@ -349,8 +344,9 @@ describe('CloudEventHandler Spec', () => {
             },
             source: {
               type: 'string',
-              const: '%7B%7Bresource%7D%7D.fetch',
-              description: 'The source of the event',
+              const: 'cmd.%7B%7Bresource%7D%7D.fetch',
+              description:
+                'The source of the event. It may be in rare cases overriden to due to the handler function behavior. This is not recommended in most cases.',
             },
             data: {
               type: 'object',
@@ -392,10 +388,15 @@ describe('CloudEventHandler Spec', () => {
               description:
                 'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
-            orchestrator: {
+            to: {
               type: 'string',
               description:
-                'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+                "\n**URI reference so encoded via encodeURI**\nSpecifies the intended initial recipient(s) or destination topic(s) for the event.\nThis field acts as metadata to assist in the event routing process, indicating where\nthe event should be initially directed. While optional, specifying this field can\nsignificantly enhance routing precision and efficiency within event brokers or middleware,\nguiding the event toward the appropriate service or component for initial processing. It is\nespecially useful in complex distributed systems where events may be handled by multiple\nservices or in multi-step workflows.\n\nThe logic for determining its value here is as follows:\n- For successful events, the system first looks for a value specified in the handler's return (Return<handler>.to). If not provided, it then considers the incomingEvent.redirectTo field, which indicates where the event should be directed after initial processing. If this is also absent, it falls back to the incomingEvent.source, essentially directing the event back to its originator. If none of these fields provide a directive, the to field is set to null, indicating no specific routing is required.\n- For error events, the to field is explicitly set to the event's source (incomingEvent.source). This ensures that error notifications are directed back to the event producer or the system component responsible for the event, allowing for the acknowledgment of the error and potential corrective actions.\n",
+            },
+            redirectTo: {
+              type: 'string',
+              description:
+                '\n**URI reference so encoded via encodeURI**\nIndicates an alternative or subsequent recipient(s) or destination topic(s) for the event,\nsuggesting where the event should be forwarded after initial processing. Like the "to" field,\n"redirectTo" is metadata that can be leveraged to dynamically alter the event\'s routing path,\nfacilitating complex workflows or multi-stage processing scenarios. It allows for the decoupling\nof event production from consumption, enabling flexible, dynamic routing without requiring the\nevent producer to be aware of the full processing pipeline.\n\nThe logic for determining its value here is as follows:\n- For successful events, the redirectTo value is taken directly from Return<handler>.redirectTo. This allows event handlers to dynamically alter the event\'s routing path based on processing outcomes, facilitating complex workflows or conditional processing scenarios.\n- For error events, the redirectTo field is set to null. This decision is made to halt further automatic redirection of error notifications, ensuring that error events are not inadvertently routed through the system but are instead directed to a specific handler or service for error handling and logging.\n',
             },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
@@ -421,8 +422,9 @@ describe('CloudEventHandler Spec', () => {
             },
             source: {
               type: 'string',
-              const: '%7B%7Bresource%7D%7D.fetch',
-              description: 'The source of the event',
+              const: 'cmd.%7B%7Bresource%7D%7D.fetch',
+              description:
+                'The source of the event. It may be in rare cases overriden to due to the handler function behavior. This is not recommended in most cases.',
             },
             data: {
               type: 'object',
@@ -454,10 +456,15 @@ describe('CloudEventHandler Spec', () => {
               description:
                 'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
-            orchestrator: {
+            to: {
               type: 'string',
               description:
-                'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+                "\n**URI reference so encoded via encodeURI**\nSpecifies the intended initial recipient(s) or destination topic(s) for the event.\nThis field acts as metadata to assist in the event routing process, indicating where\nthe event should be initially directed. While optional, specifying this field can\nsignificantly enhance routing precision and efficiency within event brokers or middleware,\nguiding the event toward the appropriate service or component for initial processing. It is\nespecially useful in complex distributed systems where events may be handled by multiple\nservices or in multi-step workflows.\n\nThe logic for determining its value here is as follows:\n- For successful events, the system first looks for a value specified in the handler's return (Return<handler>.to). If not provided, it then considers the incomingEvent.redirectTo field, which indicates where the event should be directed after initial processing. If this is also absent, it falls back to the incomingEvent.source, essentially directing the event back to its originator. If none of these fields provide a directive, the to field is set to null, indicating no specific routing is required.\n- For error events, the to field is explicitly set to the event's source (incomingEvent.source). This ensures that error notifications are directed back to the event producer or the system component responsible for the event, allowing for the acknowledgment of the error and potential corrective actions.\n",
+            },
+            redirectTo: {
+              type: 'string',
+              description:
+                '\n**URI reference so encoded via encodeURI**\nIndicates an alternative or subsequent recipient(s) or destination topic(s) for the event,\nsuggesting where the event should be forwarded after initial processing. Like the "to" field,\n"redirectTo" is metadata that can be leveraged to dynamically alter the event\'s routing path,\nfacilitating complex workflows or multi-stage processing scenarios. It allows for the decoupling\nof event production from consumption, enabling flexible, dynamic routing without requiring the\nevent producer to be aware of the full processing pipeline.\n\nThe logic for determining its value here is as follows:\n- For successful events, the redirectTo value is taken directly from Return<handler>.redirectTo. This allows event handlers to dynamically alter the event\'s routing path based on processing outcomes, facilitating complex workflows or conditional processing scenarios.\n- For error events, the redirectTo field is set to null. This decision is made to halt further automatic redirection of error notifications, ensuring that error events are not inadvertently routed through the system but are instead directed to a specific handler or service for error handling and logging.\n',
             },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
@@ -478,13 +485,14 @@ describe('CloudEventHandler Spec', () => {
             },
             type: {
               type: 'string',
-              const: 'sys.{{resource}}.fetch.error',
+              const: 'sys.cmd.{{resource}}.fetch.error',
               description: 'The topic of the event',
             },
             source: {
               type: 'string',
-              const: '%7B%7Bresource%7D%7D.fetch',
-              description: 'The source of the event',
+              const: 'cmd.%7B%7Bresource%7D%7D.fetch',
+              description:
+                'The source of the event. It may be in rare cases overriden to due to the handler function behavior. This is not recommended in most cases.',
             },
             data: {
               type: 'object',
@@ -529,10 +537,15 @@ describe('CloudEventHandler Spec', () => {
               description:
                 'Additional tracing info as per the [spec](https://www.w3.org/TR/trace-context/#tracestate-header)',
             },
-            orchestrator: {
+            to: {
               type: 'string',
               description:
-                'A unique reference of the orchestrator process (usually the name) for which the orchestration is happening. This is optional but very handy for event communication',
+                "\n**URI reference so encoded via encodeURI**\nSpecifies the intended initial recipient(s) or destination topic(s) for the event.\nThis field acts as metadata to assist in the event routing process, indicating where\nthe event should be initially directed. While optional, specifying this field can\nsignificantly enhance routing precision and efficiency within event brokers or middleware,\nguiding the event toward the appropriate service or component for initial processing. It is\nespecially useful in complex distributed systems where events may be handled by multiple\nservices or in multi-step workflows.\n\nThe logic for determining its value here is as follows:\n- For successful events, the system first looks for a value specified in the handler's return (Return<handler>.to). If not provided, it then considers the incomingEvent.redirectTo field, which indicates where the event should be directed after initial processing. If this is also absent, it falls back to the incomingEvent.source, essentially directing the event back to its originator. If none of these fields provide a directive, the to field is set to null, indicating no specific routing is required.\n- For error events, the to field is explicitly set to the event's source (incomingEvent.source). This ensures that error notifications are directed back to the event producer or the system component responsible for the event, allowing for the acknowledgment of the error and potential corrective actions.\n",
+            },
+            redirectTo: {
+              type: 'string',
+              description:
+                '\n**URI reference so encoded via encodeURI**\nIndicates an alternative or subsequent recipient(s) or destination topic(s) for the event,\nsuggesting where the event should be forwarded after initial processing. Like the "to" field,\n"redirectTo" is metadata that can be leveraged to dynamically alter the event\'s routing path,\nfacilitating complex workflows or multi-stage processing scenarios. It allows for the decoupling\nof event production from consumption, enabling flexible, dynamic routing without requiring the\nevent producer to be aware of the full processing pipeline.\n\nThe logic for determining its value here is as follows:\n- For successful events, the redirectTo value is taken directly from Return<handler>.redirectTo. This allows event handlers to dynamically alter the event\'s routing path based on processing outcomes, facilitating complex workflows or conditional processing scenarios.\n- For error events, the redirectTo field is set to null. This decision is made to halt further automatic redirection of error notifications, ensuring that error events are not inadvertently routed through the system but are instead directed to a specific handler or service for error handling and logging.\n',
             },
           },
           required: ['subject', 'type', 'source', 'data', 'datacontenttype'],
@@ -545,6 +558,7 @@ describe('CloudEventHandler Spec', () => {
     };
 
     const handler = new CloudEventHandler(params);
+    console.log(JSON.stringify(handler.getInterface(), null, 2));
     expect(JSON.stringify(handler.getInterface())).toBe(
       JSON.stringify(expectedSchema),
     );
