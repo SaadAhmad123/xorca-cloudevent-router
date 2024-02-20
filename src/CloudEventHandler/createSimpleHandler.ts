@@ -25,30 +25,31 @@ import {
  *   timeoutMs: 5000, // Optional timeout in milliseconds
  * });
  */
-export default function createSimpleHandler<TName extends string>(
-  params: ICreateSimpleCloudEventHandler<TName>,
+export default function createSimpleHandler<TAcceptType extends string>(
+  params: ICreateSimpleCloudEventHandler<TAcceptType>,
 ) {
   return new CloudEventHandler<
-    `cmd.${TName}`,
-    | `evt.${TName}.success`
-    | `evt.${TName}.error`
-    | `evt.${TName}.timeout`
-    | `sys.${TName}.error`
+    `cmd.${TAcceptType}`,
+    | `evt.${TAcceptType}.success`
+    | `evt.${TAcceptType}.error`
+    | `evt.${TAcceptType}.timeout`
+    | `sys.${TAcceptType}.error`
   >({
     name: params.name,
     description: params.description,
     logger: params.logger,
     accepts: {
-      type: `cmd.${params.name}`,
-      zodSchema: params.accepts,
+      type: `cmd.${params.accepts.type}`,
+      description: params.accepts.description,
+      zodSchema: params.accepts.zodSchema,
     },
     emits: [
       {
-        type: `evt.${params.name}.success`,
+        type: `evt.${params.accepts.type}.success`,
         zodSchema: params.emits,
       },
       {
-        type: `evt.${params.name}.error`,
+        type: `evt.${params.accepts.type}.error`,
         zodSchema: zod.object({
           errorName: zod.string().optional().describe('The name of the error'),
           errorMessage: zod
@@ -62,7 +63,7 @@ export default function createSimpleHandler<TName extends string>(
         }),
       },
       {
-        type: `evt.${params.name}.timeout`,
+        type: `evt.${params.accepts.type}.timeout`,
         zodSchema: zod.object({
           timeout: zod
             .number()
@@ -91,10 +92,10 @@ export default function createSimpleHandler<TName extends string>(
       const start: number = performance.now();
       let result: {
         type:
-          | `evt.${TName}.success`
-          | `evt.${TName}.error`
-          | `evt.${TName}.timeout`
-          | `sys.${TName}.error`;
+          | `evt.${TAcceptType}.success`
+          | `evt.${TAcceptType}.error`
+          | `evt.${TAcceptType}.timeout`
+          | `sys.${TAcceptType}.error`;
         data: Record<string, any>;
       }[] = [];
       try {
@@ -109,7 +110,7 @@ export default function createSimpleHandler<TName extends string>(
               params: topicParams,
             });
             result.push({
-              type: `evt.${formatTemplate(params.name, topicParams)}.success` as `evt.${TName}.success`,
+              type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
               data: await params.handler(data, spanContext, logger),
             });
           } catch (err) {
@@ -123,7 +124,7 @@ export default function createSimpleHandler<TName extends string>(
               error,
             });
             result.push({
-              type: `evt.${formatTemplate(params.name, topicParams)}.error` as `evt.${TName}.error`,
+              type: `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`,
               data: {
                 errorName: (error as Error)?.name,
                 errorMessage: (error as Error)?.message,
@@ -143,7 +144,7 @@ export default function createSimpleHandler<TName extends string>(
           error,
         });
         result.push({
-          type: `evt.${formatTemplate(params.name, topicParams)}.timeout` as `evt.${TName}.timeout`,
+          type: `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`,
           data: {
             timeout: timeoutMs,
             errorName: (err as Error)?.name,

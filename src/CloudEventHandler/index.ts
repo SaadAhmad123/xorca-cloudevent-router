@@ -66,7 +66,7 @@ export default class CloudEventHandler<
     return [
       ...this.params.emits,
       {
-        type: `sys.${this.topic}.error`,
+        type: `sys.${this.params.name}.error`,
         zodSchema: zod.object({
           errorName: zod.string().optional().describe('The name of the error'),
           errorMessage: zod
@@ -210,7 +210,7 @@ export default class CloudEventHandler<
    *
    * - **type**: Directly taken from `contentForOutgoingEvent.type`, indicating the specific type of event being emitted as a result of the processing.
    * - **data**: Uses `contentForOutgoingEvent.data` as the payload for the outgoing event, ensuring the data is relevant to the event type.
-   * - **source**: Prefers `contentForOutgoingEvent.source` if provided; otherwise, defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
+   * - **source**: Prefers `contentForOutgoingEvent.source` if provided; otherwise, looks for handlers name else defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
    * - **subject**: Falls back to `incomingEvent.subject` if not specified in `contentForOutgoingEvent`, maintaining context across event processing flows.
    * - **datacontenttype**: Inherits from `incomingEvent`, typically `'application/cloudevents+json; charset=UTF-8'`, ensuring consistency in event data formatting.
    * - **traceparent** and **tracestate**: Generated based on `spanContext`, facilitating distributed tracing by carrying over trace information from the incoming event or initiating a new trace context.
@@ -269,7 +269,9 @@ export default class CloudEventHandler<
         : null,
       type: contentForOutgoingEvent.type,
       data: contentForOutgoingEvent.data,
-      source: encodeURI(contentForOutgoingEvent.source || this.topic),
+      source: encodeURI(
+        contentForOutgoingEvent.source || this.params.name || this.topic,
+      ),
       subject: contentForOutgoingEvent.subject || incomingEvent.subject,
       datacontenttype:
         incomingEvent.datacontenttype ||
@@ -286,7 +288,7 @@ export default class CloudEventHandler<
    * The output events have the fields which follow the logic mentioned below
    * - **type**: Directly taken from `Return<handler>.type`, indicating the specific type of event being emitted as a result of the processing.
    * - **data**: Uses `Return<handler>.data` as the payload for the outgoing event, ensuring the data is relevant to the event type.
-   * - **source**: Prefers `Return<handler>.source` if provided; otherwise, defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
+   * - **source**: Prefers `Return<handler>.source` if provided; otherwise, looks for handlers name else defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
    * - **subject**: Falls back to `incomingEvent.subject` if not specified in `Return<handler>.subject`, maintaining context across event processing flows.
    * - **datacontenttype**: Inherits from `incomingEvent`, typically `'application/cloudevents+json; charset=UTF-8'`, ensuring consistency in event data formatting.
    * - **traceparent** and **tracestate**: Generated based on `spanContext`, facilitating distributed tracing by carrying over trace information from the incoming event or initiating a new trace context.
@@ -331,9 +333,9 @@ export default class CloudEventHandler<
    * This approach maintains system resilience and provides meaningful feedback on failures.
    *
    * The logic for constructing the output `CloudEvent`, including the error event, follows specific rules:
-   * - **type**: Taken directly from the handler's return value (`Return<handler>.type`), indicating the specific type of event being emitted. For error events, it is formatted as `sys.${this.topic}.error`.
+   * - **type**: Taken directly from the handler's return value (`Return<handler>.type`), indicating the specific type of event being emitted. For error events, it is formatted as `sys.${this.params.name}.error`.
    * - **data**: The payload is sourced from `Return<handler>.data` for successful events. For error events, it includes error details such as name, message, stack, and additional info.
-   * - **source**: Prefers `Return<handler>.source` if provided; defaults to the handler's topic. For error events, the source is set to the handler's topic, ensuring traceability of the error origin.
+   * - **source**: Prefers `Return<handler>.source` if provided; otherwise, looks for handlers name else defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
    * - **subject**: Defaults to `incomingEvent.subject` if `Return<handler>.subject` is not specified, maintaining context. For error events, it uses the original event's subject or a default indicating the CloudEvent ID.
    * - **datacontenttype**: Inherits from the incoming event, typically `'application/cloudevents+json; charset=UTF-8'`. This ensures consistency in event data formatting across the workflow.
    * - **traceparent** and **tracestate**: Generated from `spanContext`, facilitating distributed tracing. This includes carrying over trace information from the incoming event or starting a new trace context, crucial for error events to trace the error source.
@@ -397,8 +399,8 @@ export default class CloudEventHandler<
           // Must go back to the producer incase of error
           to: encodeURI(event.source),
           redirectto: null,
-          source: encodeURI(this.topic),
-          type: `sys.${this.topic}.error`,
+          source: encodeURI(this.params.name || this.topic),
+          type: `sys.${this.params.name || this.topic}.error`,
           subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
           data: {
             errorName: (e as CloudEventHandlerError).name,

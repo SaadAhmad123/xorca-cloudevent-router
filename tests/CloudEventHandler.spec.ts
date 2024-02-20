@@ -69,7 +69,7 @@ describe('CloudEventHandler Spec', () => {
       )
     )[0];
     expect(resp.success).toBe(false);
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
     expect(resp.eventToEmit.to).toBe('/test/saad');
 
     resp = (
@@ -83,7 +83,7 @@ describe('CloudEventHandler Spec', () => {
       )
     )[0];
     expect(resp.success).toBe(false);
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
     expect(resp.eventToEmit.to).toBe('/test/saad');
 
     resp = (
@@ -100,7 +100,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The datacontenttype MUST be provided.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -117,7 +117,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/cloudevents+json; charset=UTF-8' but the provided is application",
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -134,7 +134,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] The handler only accepts type=cmd.{{resource}}.fetch but the provided is evt.handler.',
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -152,7 +152,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.{{resource}}.fetch expected data shape',
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
       await handler.safeCloudevent(
@@ -199,7 +199,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
     expect(resp.eventToEmit.to).toBe('/test/saad');
 
     handler = new CloudEventHandler({
@@ -216,7 +216,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     handler = new CloudEventHandler({
       ...params,
@@ -252,7 +252,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent][handler] Handler errored (message=some error)',
     );
-    expect(resp.eventToEmit.type).toBe('sys.cmd.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
   });
 
   it('should return a interface with input and output schemas', () => {
@@ -485,7 +485,7 @@ describe('CloudEventHandler Spec', () => {
             },
             type: {
               type: 'string',
-              const: 'sys.cmd.{{resource}}.fetch.error',
+              const: 'sys.{{resource}}.fetch.error',
               description: 'The topic of the event',
             },
             source: {

@@ -147,20 +147,22 @@ export interface ICloudEventHandler<
  * The `name` field plays a critical role in defining the topic for the event handler, following the pattern `cmd.${name}`.
  * This naming convention facilitates organized event routing and processing, making it easier to manage event-driven architectures.
  *
- * @template TName - A string literal representing the unique name of the CloudEventHandler, descriptive of its function.
+ * @template TAcceptType - A string literal representing the unique name of the CloudEventHandler, descriptive of its function.
  *
- * @property {TName} name - The unique name of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${name}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
+ * @property {string} name - The unique name of the CloudEventHandler.
  * @property {string} [description] - An optional, human-readable description of the CloudEventHandler's role or the types of events it handles. Provides additional context for developers.
- * @property {zod.ZodObject<any>} accepts - A Zod validation schema defining the structure of events this handler can process, ensuring type safety and data integrity.
+ * @property {CloudEventValidationSchema<TAcceptType>} accepts - A validation schema defining the structure of events this handler can process, ensuring type safety and data integrity.
+ * @property {string} accepts.type - The unique topic of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${name}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
+ * @property {zod.ZodObject<any>} accepts.zodSchema - The zod schema
  * @property {zod.ZodObject<any>} emits - A Zod validation schema for the events that this handler may emit as a result of processing, ensuring consistency and reliability in event communication.
  * @property {Function} handler - The core function for processing incoming event data, encapsulating the logic for handling and transforming event data based on business requirements.
  * @property {number} [timeoutMs=10000] - Optional. Specifies the timeout duration in milliseconds, defaulting to 10000ms, for managing execution time and resources effectively.
  * @property {Logger} [logger] - Optional. A logging function for logging events, errors, or significant actions, aiding in monitoring and debugging the event handling process.
  */
-export interface ICreateSimpleCloudEventHandler<TName extends string> {
-  name: TName;
+export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
+  name: string;
   description?: string;
-  accepts: zod.ZodObject<any>;
+  accepts: CloudEventValidationSchema<TAcceptType>;
   emits: zod.ZodObject<any>;
   handler: (
     data: Record<string, any>,
@@ -192,17 +194,19 @@ export type VariableType = {
  * designed for HTTP interactions. This convention helps in distinguishing HTTP-specific handlers from others, streamlining
  * event processing and routing in systems with diverse event handling needs.
  *
- * @template TName - A string literal representing the unique name of the CloudEventHandler, ideally reflecting its role or the HTTP services it interacts with.
+ * @template TAcceptType - A string literal representing the unique name of the CloudEventHandler, ideally reflecting its role or the HTTP services it interacts with.
  *
- * @property {TName} name - The unique name of the CloudEventHandler, forming the topic `cmd.http.${name}` for the handler. This identification aids in the targeted routing and processing of HTTP-related events.
+ * @property {string} name - The unique name of the CloudEventHandler.
+ * @property {string} acceptType - The unique topic of the CloudEventHandler, forming the basis of the handler's topic (`cmd.${name}`). This clear identification aids in the routing and processing of events, ensuring they are directed to the appropriate handlers.
  * @property {string} [description] - An optional description providing context about the handler's functionality or the types of HTTP requests it manages, enhancing understanding of the handler's role.
  * @property {Record<string, VariableType>} [variables] - Optional. Maps variable names to values and secrecy flags, crucial for secure handling of sensitive configuration like API keys.
  * @property {string[]} [whitelistedUrls] - Optional. A list of URLs the handler is permitted to interact with, serving as a security measure to ensure communication only with trusted services. By default, all urls are permitted.
  * @property {number} [timeoutMs=10000] - Optional. Sets the maximum duration in milliseconds for HTTP request completion, defaulting to 10000ms, to prevent indefinite hangs and manage resources.
  * @property {Logger} [logger] - Optional. A logging function for use within the handler for logging purposes, essential for debugging, monitoring, and auditing interactions with external services.
  */
-export interface ICreateHttpCloudEventHandler<TName extends string> {
-  name: TName;
+export interface ICreateHttpCloudEventHandler<TAcceptType extends string> {
+  name: string;
+  acceptType: TAcceptType;
   description?: string;
   variables?: Record<string, VariableType>;
   whitelistedUrls?: string[];

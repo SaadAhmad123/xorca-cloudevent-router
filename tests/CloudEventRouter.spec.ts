@@ -7,9 +7,12 @@ import createSimpleHandler from '../src/CloudEventHandler/createSimpleHandler';
 
 const bookFetchHandler = createSimpleHandler({
   name: '{{resource}}.fetch',
-  accepts: zod.object({
-    book_id: zod.string(),
-  }),
+  accepts: {
+    type: '{{resource}}.fetch',
+    zodSchema: zod.object({
+      book_id: zod.string(),
+    }),
+  },
   emits: zod.object({
     book_id: zod.string(),
     book_content: zod.string().array(),
@@ -181,9 +184,12 @@ describe('CloudEventRouter spec', () => {
       handlers: [
         createSimpleHandler({
           name: 'books.fetch',
-          accepts: zod.object({
-            book_id: zod.string(),
-          }),
+          accepts: {
+            type: 'books.fetch',
+            zodSchema: zod.object({
+              book_id: zod.string(),
+            }),
+          },
           emits: zod.object({
             book_id: zod.string(),
             book_content: zod.string().array(),
@@ -219,9 +225,12 @@ describe('CloudEventRouter spec', () => {
         createSimpleHandler({
           timeoutMs: 100,
           name: 'books.fetch',
-          accepts: zod.object({
-            book_id: zod.string(),
-          }),
+          accepts: {
+            type: 'books.fetch',
+            zodSchema: zod.object({
+              book_id: zod.string(),
+            }),
+          },
           emits: zod.object({
             book_id: zod.string(),
             book_content: zod.string().array(),

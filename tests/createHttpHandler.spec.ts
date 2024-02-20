@@ -5,7 +5,8 @@ import { CloudEvent } from 'cloudevents';
 
 describe('createHttpHandler test', () => {
   const openAiHttpHandler = createHttpHandler({
-    name: 'ntk.{{response}}',
+    name: 'ntk.handler',
+    acceptType: 'ntk.{{response}}',
     variables: {
       OPEN_AI_API_KEY: {
         value: process.env.OPEN_AI_API_KEY || '',
@@ -49,7 +50,7 @@ describe('createHttpHandler test', () => {
     const parsedData = JSON.parse(resp?.data?.text || '{}');
     expect(parsedData?.object).toBe('chat.completion');
     expect(parsedData?.choices?.length).toBe(1);
-    expect(resp.to).toBe('/test')
+    expect(resp.to).toBe('/test');
   });
 
   it('should fail calling OpenAI api successfully', async () => {
@@ -123,7 +124,7 @@ describe('createHttpHandler test', () => {
     );
     const { success, eventToEmit: resp, error } = resps[0];
     expect(success).toBe(false);
-    expect(resp.type).toBe('sys.cmd.ntk.{{response}}.error');
+    expect(resp.type).toBe('sys.ntk.handler.error');
     expect(resp?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=cmd.ntk.{{response}} expected data shape',
     );

@@ -14,8 +14,8 @@ class HttpError extends Error {
 
 /**
  * Creates an HTTP CloudEventHandler for handling HTTP requests and responses.
- * @template TName - The name type for the CloudEventHandler.
- * @param {ICreateHttpCloudEventHandler<TName>} params - Parameters for configuring the HTTP CloudEventHandler.
+ * @template TAcceptType - The name type for the CloudEventHandler.
+ * @param {ICreateHttpCloudEventHandler<TAcceptType>} params - Parameters for configuring the HTTP CloudEventHandler.
  * @returns A new CloudEventHandler instance for HTTP requests.
  * @example
  * // Example usage of createHttpHandler
@@ -28,14 +28,15 @@ class HttpError extends Error {
  *   timeoutMs: 5000, // Optional timeout in milliseconds
  * });
  */
-export default function createHttpHandler<TName extends string>({
+export default function createHttpHandler<TAcceptType extends string>({
   name,
+  acceptType,
   description = 'A http request handler',
   whitelistedUrls,
   variables = {},
   timeoutMs = 10000,
   logger,
-}: ICreateHttpCloudEventHandler<TName>) {
+}: ICreateHttpCloudEventHandler<TAcceptType>) {
   const templateVariables = Object.assign(
     {},
     ...Object.entries(variables).map(([key, value]) => ({
@@ -45,54 +46,57 @@ export default function createHttpHandler<TName extends string>({
   const secretValues = Object.values(variables)
     .filter((item) => Boolean(item.secret))
     .map((item) => item.value);
-  return createSimpleHandler<TName>({
+  return createSimpleHandler<TAcceptType>({
     name,
     description,
     timeoutMs,
     logger,
-    accepts: zod.object({
-      method: zod
-        .enum([
-          'GET',
-          'POST',
-          'PUT',
-          'DELETE',
-          'PATCH',
-          'OPTIONS',
-          'HEAD',
-          'CONNECT',
-          'TRACE',
-        ])
-        .describe('All HTTP methods'),
-      url: whitelistedUrls?.length
-        ? zod
-            .enum(whitelistedUrls as [string, ...string[]])
-            .describe('The allowed URLs')
-        : zod
-            .string()
-            .describe(
-              'Any request URL. Warning! This is not secure, please provide whitelistedUrls',
-            ),
-      headers: zod
-        .record(zod.string(), zod.string())
-        .optional()
-        .describe(
-          'Request headers. By default the headers sent will be "content-type":"application/json"',
-        ),
-      body: zod
-        .string()
-        .optional()
-        .describe(
-          'The request body in utf-8 string format. In case of "GET" this will be ignored. Pass the query parameters in the url string itself',
-        ),
-      successStatusCodes: zod
-        .number()
-        .array()
-        .optional()
-        .describe(
-          '(default: [200, 201]). The success status codes to be considered. Otherwise, the error event will be generated with errorMessage = {statusCode: number, text: string <being the response in text format>}',
-        ),
-    }),
+    accepts: {
+      type: acceptType,
+      zodSchema: zod.object({
+        method: zod
+          .enum([
+            'GET',
+            'POST',
+            'PUT',
+            'DELETE',
+            'PATCH',
+            'OPTIONS',
+            'HEAD',
+            'CONNECT',
+            'TRACE',
+          ])
+          .describe('All HTTP methods'),
+        url: whitelistedUrls?.length
+          ? zod
+              .enum(whitelistedUrls as [string, ...string[]])
+              .describe('The allowed URLs')
+          : zod
+              .string()
+              .describe(
+                'Any request URL. Warning! This is not secure, please provide whitelistedUrls',
+              ),
+        headers: zod
+          .record(zod.string(), zod.string())
+          .optional()
+          .describe(
+            'Request headers. By default the headers sent will be "content-type":"application/json"',
+          ),
+        body: zod
+          .string()
+          .optional()
+          .describe(
+            'The request body in utf-8 string format. In case of "GET" this will be ignored. Pass the query parameters in the url string itself',
+          ),
+        successStatusCodes: zod
+          .number()
+          .array()
+          .optional()
+          .describe(
+            '(default: [200, 201]). The success status codes to be considered. Otherwise, the error event will be generated with errorMessage = {statusCode: number, text: string <being the response in text format>}',
+          ),
+      }),
+    },
     emits: zod.object({
       statusCode: zod.number().describe('The response status code'),
       statusText: zod
