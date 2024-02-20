@@ -36,6 +36,7 @@ export default function createHttpHandler<TAcceptType extends string>({
   variables = {},
   timeoutMs = 10000,
   logger,
+  disableRoutingMetadata,
 }: ICreateHttpCloudEventHandler<TAcceptType>) {
   const templateVariables = Object.assign(
     {},
@@ -47,6 +48,7 @@ export default function createHttpHandler<TAcceptType extends string>({
     .filter((item) => Boolean(item.secret))
     .map((item) => item.value);
   return createSimpleHandler<TAcceptType>({
+    disableRoutingMetadata,
     name,
     description,
     timeoutMs,

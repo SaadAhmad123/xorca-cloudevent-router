@@ -35,6 +35,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
     | `evt.${TAcceptType}.timeout`
     | `sys.${TAcceptType}.error`
   >({
+    disableRoutingMetadata: params.disableRoutingMetadata,
     name: params.name || `cmd.${params.accepts.type}`,
     description: params.description,
     logger: params.logger,
