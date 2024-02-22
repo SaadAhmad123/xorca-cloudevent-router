@@ -1,4 +1,4 @@
-import TraceParent from '../../src/openTelemetry/traceparent';
+import TraceParent from '../../src/Telemetry/traceparent';
 
 describe('The traceparent spec', () => {
   it('should create a validate a `traceparent` as per the W3C spec', () => {

@@ -1,5 +1,5 @@
-import { SpanStatusCode } from '../openTelemetry/Span/types';
-import TraceParent from '../openTelemetry/traceparent';
+import { SpanStatusCode } from '../Telemetry/types';
+import TraceParent from '../Telemetry/traceparent';
 import { formatTemplate } from '../utils';
 import createSimpleHandler from './createSimpleHandler';
 import { ICreateHttpCloudEventHandler } from './types';

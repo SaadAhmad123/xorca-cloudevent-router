@@ -10,8 +10,8 @@ import {
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { cleanString, matchStringTemplate } from '../utils';
-import TraceParent from '../openTelemetry/traceparent';
-import { SpanContext } from '../openTelemetry/Span/types';
+import TraceParent from '../Telemetry/traceparent';
+import { SpanContext } from '../Telemetry/types';
 
 /**
  * A class for creating and managing CloudEvent handlers, facilitating type validation,

@@ -1,5 +1,5 @@
 import * as zod from 'zod';
-import { SpanContext } from '../openTelemetry/Span/types';
+import { SpanContext } from '../Telemetry/types';
 import { CloudEvent } from 'cloudevents';
 
 export type LogType = 'START' | 'END' | 'ERROR' | 'WARNING' | 'LOG' | 'DEBUG';

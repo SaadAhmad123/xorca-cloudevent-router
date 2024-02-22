@@ -1,5 +1,5 @@
 import * as crypto from 'crypto';
-import { SpanContext } from './Span/types';
+import { SpanContext } from './types';
 import { insertHyphen } from '../utils';
 
 /**
