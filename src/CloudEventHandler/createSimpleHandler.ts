@@ -104,7 +104,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
           try {
             await logger({
               type: 'START',
-              source: `createSimpleHandler<${params.name}>.handler`,
+              source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
               spanContext,
               input: { type, data },
               startTime: start,
@@ -118,7 +118,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
             const error = err as Error;
             await logger({
               type: 'ERROR',
-              source: `createSimpleHandler<${params.name}>.handler`,
+              source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
               spanContext,
               input: { type, data },
               params: topicParams,
@@ -138,7 +138,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
         const error = err as Error;
         await logger({
           type: 'ERROR',
-          source: `createSimpleHandler<${params.name}>.handler`,
+          source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
           spanContext,
           input: { type, data },
           params: topicParams,
@@ -161,7 +161,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
           async (item) =>
             await logger?.({
               type: 'LOG',
-              source: `createSimpleHandler<${params.name}>.handler`,
+              source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
               spanContext,
               output: item,
             }),
@@ -169,7 +169,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
       );
       await logger?.({
         type: 'END',
-        source: `createSimpleHandler<${params.name}>.handler`,
+        source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
         spanContext,
         startTime: start,
         endTime,
