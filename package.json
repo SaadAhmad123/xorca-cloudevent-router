@@ -1,7 +1,7 @@
 {
   "name": "xorca-cloudevent-router",
   "author": "Saad Ahmad <saadkwi12@hotmail.com>",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "description": "This package allows to create xOrca spec-ed routers and handlers for cloudevents.",
   "main": "dist/index.js",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "format": "npx prettier --write ."
   },
   "engines": {
-    "node": ">=16.10.0"
+    "node": ">=18.0.0"
   },
   "devDependencies": {
     "@jest/globals": "^29.6.2",
