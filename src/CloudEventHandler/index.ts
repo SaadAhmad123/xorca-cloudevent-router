@@ -278,7 +278,7 @@ export default class CloudEventHandler<
       type: contentForOutgoingEvent.type,
       data: {
         ...(contentForOutgoingEvent.data || {}),
-        __executionunits: executionUnits.toString(),
+        //__executionunits: executionUnits.toString(),
       },
       source: encodeURI(
         contentForOutgoingEvent.source || this.params.name || this.topic,
@@ -423,7 +423,7 @@ export default class CloudEventHandler<
             errorMessage: (e as CloudEventHandlerError).message,
             additional: (e as CloudEventHandlerError).additional,
             event: (e as CloudEventHandlerError).event,
-            __executionunits: executionUnits.toString(),
+            //__executionunits: executionUnits.toString(),
           },
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
           traceparent: TraceParent.create.traceparent(spanContext),

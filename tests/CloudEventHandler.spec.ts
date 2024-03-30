@@ -173,7 +173,6 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
     expect(resp.eventToEmit.to).toBe('/test/saad');
-    expect(resp.eventToEmit.data?.__executionunits).toBe((1.5).toString());
     expect(resp.eventToEmit.executionunits).toBe((1.5).toString());
   });
 
@@ -248,7 +247,6 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.data?.weather?.unit).toBe('C');
     expect(resp.eventToEmit.to).toBe('/test/saad/1');
     expect(resp.eventToEmit.executionunits).toBe((0).toString());
-    expect(resp.eventToEmit.data?.__executionunits).toBe((0).toString());
 
     handler = new CloudEventHandler({
       ...params,
