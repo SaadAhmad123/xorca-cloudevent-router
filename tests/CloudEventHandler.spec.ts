@@ -72,7 +72,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
     expect(resp.eventToEmit.to).toBe('/test/saad');
-    expect(resp.eventToEmit.executionunits).toBe((1.5).toString())
+    expect(resp.eventToEmit.executionunits).toBe((1.5).toString());
 
     resp = (
       await handler.safeCloudevent(
@@ -173,8 +173,8 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
     expect(resp.eventToEmit.to).toBe('/test/saad');
-    expect(resp.eventToEmit.data?.__executionunits).toBe((1.5).toString())
-    expect(resp.eventToEmit.executionunits).toBe((1.5).toString())
+    expect(resp.eventToEmit.data?.__executionunits).toBe((1.5).toString());
+    expect(resp.eventToEmit.executionunits).toBe((1.5).toString());
   });
 
   it('Should throw an error if handler returns invalid data', async () => {
@@ -567,7 +567,6 @@ describe('CloudEventHandler Spec', () => {
     };
 
     const handler = new CloudEventHandler(params);
-    console.log(JSON.stringify(handler.getInterface(), null, 2));
     expect(JSON.stringify(handler.getInterface())).toBe(
       JSON.stringify(expectedSchema),
     );

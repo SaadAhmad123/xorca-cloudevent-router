@@ -1,10 +1,7 @@
 import * as zod from 'zod';
 import CloudEventHandler from '.';
 import { ICreateSimpleCloudEventHandler } from './types';
-import {
-  formatTemplate,
-  timedPromise,
-} from '../utils';
+import { formatTemplate, timedPromise } from '../utils';
 
 /**
  * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.

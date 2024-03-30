@@ -44,7 +44,7 @@ export type CloudEventHandlerFunctionOutput<TEmitType extends string> = {
   orchestrator?: string;
   redirectto?: string;
   to?: string;
-  executionunits?: number
+  executionunits?: number;
 };
 
 /**
@@ -142,7 +142,7 @@ export interface ICloudEventHandler<
     event: CloudEventHandlerFunctionInput<TAcceptType, TEventData>,
   ) => Promise<CloudEventHandlerFunctionOutput<TEmitType>[]>;
   logger?: Logger;
-  executionUnits?: number
+  executionUnits?: number;
   disableRoutingMetadata?: boolean;
 }
 

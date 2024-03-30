@@ -2,7 +2,7 @@ import CloudEventHandler from '../CloudEventHandler';
 import { CloudEvent } from 'cloudevents';
 import { CloudEventRouterError } from './errors';
 import { matchTemplates, timedPromise } from '../utils';
-import { ICloudEventRouter } from './types';
+import { CloudEventRouterHandlerOptions, CloudEventRouterResponse, ICloudEventRouter } from './types';
 import zodToJsonSchema from 'zod-to-json-schema';
 import * as zod from 'zod';
 
@@ -46,19 +46,26 @@ export default class CloudEventRouter {
    * Processes an array of CloudEvents using registered CloudEventHandlers.
    *
    * @param events - An array of CloudEvents to be processed.
-   * @param errorOnNotFound - If true, returns an error for events without a corresponding handler.
-   * @param timeoutMs - Timeout duration for each CloudEvent processing. Default is 900000ms = 15min.
+   * @param [options] - An options object
+   * @property [options.responseCallback] - A callback function to react to events generated after a handler processed an event. Use this if you don't want to wait for other handlers to finish executions before replying for all the events
+   * @param [options.errorOnNotFound] - If true, returns an error for events without a corresponding handler.
+   * @param [options.timeoutMs] - Timeout duration for each CloudEvent processing. Default is 900000ms = 15min.
    * @returns A Promise resolving to an array of processed CloudEvents.
    */
   async cloudevents(
     events: CloudEvent<Record<string, any>>[],
-    errorOnNotFound: boolean = true,
-    timeoutMs: number = 900000,
+    options?: CloudEventRouterHandlerOptions,
   ) {
+    const {
+      responseCallback,
+      errorOnNotFound = true,
+      timeoutMs = 90000,
+    } = options || {};
     const handlerKeys = Object.keys(this.handlerMap || {});
     return (
       await Promise.all(
         events.map(async (item) => {
+          let finalResponses: CloudEventRouterResponse[] = [];
           try {
             const matchTemplateResp = matchTemplates(item.type, handlerKeys);
             if (!matchTemplateResp) {
@@ -74,13 +81,17 @@ export default class CloudEventRouter {
                 ].safeCloudevent(item),
               timeoutMs,
             )();
-            return responses.map((resp) => ({
-              event: item,
-              success: resp.success,
-              eventToEmit: resp.eventToEmit,
-            }));
+            finalResponses = [
+              ...finalResponses,
+              ...responses.map((resp) => ({
+                event: item,
+                success: resp.success,
+                eventToEmit: resp.eventToEmit,
+              })),
+            ];
           } catch (error) {
-            return [
+            finalResponses = [
+              ...finalResponses,
               {
                 event: item,
                 success: false,
@@ -90,19 +101,11 @@ export default class CloudEventRouter {
               },
             ];
           }
+          await responseCallback?.(finalResponses).catch(console.error);
+          return finalResponses;
         }),
       )
-    ).reduce(
-      (acc, cur) => [...acc, ...cur],
-      [] as {
-        event: CloudEvent<Record<string, any>>;
-        success: boolean;
-        errorMessage?: string;
-        errorStack?: string;
-        errorType?: string;
-        eventToEmit?: CloudEvent<Record<string, any>>;
-      }[],
-    );
+    ).reduce((acc, cur) => [...acc, ...cur], [] as CloudEventRouterResponse[]);
   }
 
   /**
