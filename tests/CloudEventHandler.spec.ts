@@ -4,6 +4,7 @@ import { CloudEvent } from 'cloudevents';
 
 describe('CloudEventHandler Spec', () => {
   const params = {
+    executionUnits: 1.5,
     name: '{{resource}}.fetch',
     description: 'It fetches the weather data from opensource',
     accepts: {
@@ -71,6 +72,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
     expect(resp.eventToEmit.to).toBe('/test/saad');
+    expect(resp.eventToEmit.executionunits).toBe((1.5).toString())
 
     resp = (
       await handler.safeCloudevent(
@@ -171,6 +173,8 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
     expect(resp.eventToEmit.to).toBe('/test/saad');
+    expect(resp.eventToEmit.data?.__executionunits).toBe((1.5).toString())
+    expect(resp.eventToEmit.executionunits).toBe((1.5).toString())
   });
 
   it('Should throw an error if handler returns invalid data', async () => {
@@ -204,6 +208,7 @@ describe('CloudEventHandler Spec', () => {
 
     handler = new CloudEventHandler({
       ...params,
+      executionUnits: undefined,
       handler: async ({ data }) => [
         {
           type: 'evt.weather.fetch.success',
@@ -217,9 +222,11 @@ describe('CloudEventHandler Spec', () => {
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
     );
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
+    expect(resp.eventToEmit.executionunits).toBe((0).toString());
 
     handler = new CloudEventHandler({
       ...params,
+      executionUnits: undefined,
       handler: async ({ data }) => [
         {
           type: 'evt.weather.fetch.success',
@@ -240,6 +247,8 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.data?.weather?.temperature).toBe(34);
     expect(resp.eventToEmit.data?.weather?.unit).toBe('C');
     expect(resp.eventToEmit.to).toBe('/test/saad/1');
+    expect(resp.eventToEmit.executionunits).toBe((0).toString());
+    expect(resp.eventToEmit.data?.__executionunits).toBe((0).toString());
 
     handler = new CloudEventHandler({
       ...params,

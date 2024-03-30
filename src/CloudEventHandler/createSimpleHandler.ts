@@ -2,7 +2,6 @@ import * as zod from 'zod';
 import CloudEventHandler from '.';
 import { ICreateSimpleCloudEventHandler } from './types';
 import {
-  containsDoubleCurlyBraces,
   formatTemplate,
   timedPromise,
 } from '../utils';
@@ -36,6 +35,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
     | `sys.${TAcceptType}.error`
   >({
     disableRoutingMetadata: params.disableRoutingMetadata,
+    executionUnits: params.executionUnits,
     name: params.name || `cmd.${params.accepts.type}`,
     description: params.description,
     logger: params.logger,

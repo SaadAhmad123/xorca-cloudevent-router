@@ -262,6 +262,8 @@ export default class CloudEventHandler<
       incomingEvent.redirectto ||
       incomingEvent.source ||
       null) as string | null;
+
+    const executionUnits = contentForOutgoingEvent.executionunits || this.params.executionUnits || 0
     return new CloudEvent<Record<string, any>>({
       to:
         !this.params.disableRoutingMetadata && toField
@@ -273,7 +275,10 @@ export default class CloudEventHandler<
           ? encodeURI(contentForOutgoingEvent.redirectto)
           : null,
       type: contentForOutgoingEvent.type,
-      data: contentForOutgoingEvent.data,
+      data: {
+        ...(contentForOutgoingEvent.data || {}),
+        __executionunits: executionUnits.toString()
+      },
       source: encodeURI(
         contentForOutgoingEvent.source || this.params.name || this.topic,
       ),
@@ -283,6 +288,7 @@ export default class CloudEventHandler<
         'application/cloudevents+json; charset=UTF-8',
       traceparent: TraceParent.create.traceparent(spanContext),
       tracestate: spanContext.traceState || null,
+      executionunits: executionUnits.toString()
     });
   }
 
@@ -398,6 +404,7 @@ export default class CloudEventHandler<
           data: event.data as Record<string, any>,
         },
       });
+      const executionUnits = this.params.executionUnits || 0
       responses.push({
         success: false,
         eventToEmit: new CloudEvent({
@@ -413,11 +420,12 @@ export default class CloudEventHandler<
             errorMessage: (e as CloudEventHandlerError).message,
             additional: (e as CloudEventHandlerError).additional,
             event: (e as CloudEventHandlerError).event,
+            __executionunits: executionUnits.toString()
           },
           datacontenttype: 'application/cloudevents+json; charset=UTF-8',
           traceparent: TraceParent.create.traceparent(spanContext),
           tracestate: spanContext.traceState || '',
-          time: new Date().toISOString(),
+          executionunits: executionUnits.toString()
         }),
         error: e as Error,
       });

@@ -1,4 +1,3 @@
-import { SpanStatusCode } from '../Telemetry/types';
 import TraceParent from '../Telemetry/traceparent';
 import { formatTemplate } from '../utils';
 import createSimpleHandler from './createSimpleHandler';
@@ -37,6 +36,7 @@ export default function createHttpHandler<TAcceptType extends string>({
   timeoutMs = 10000,
   logger,
   disableRoutingMetadata,
+  executionUnits,
 }: ICreateHttpCloudEventHandler<TAcceptType>) {
   const templateVariables = Object.assign(
     {},
@@ -48,6 +48,7 @@ export default function createHttpHandler<TAcceptType extends string>({
     .filter((item) => Boolean(item.secret))
     .map((item) => item.value);
   return createSimpleHandler<TAcceptType>({
+    executionUnits,
     disableRoutingMetadata,
     name,
     description,
