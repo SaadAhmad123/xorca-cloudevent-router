@@ -23,8 +23,8 @@ import { formatTemplate, timedPromise } from '../utils';
  *   },
  *   timeoutMs: 5000, // Optional timeout in milliseconds
  * });
- * 
- * If it is required to dynamically assung 
+ *
+ * If it is required to dynamically assung
  */
 export default function createSimpleHandler<TAcceptType extends string>(
   params: ICreateSimpleCloudEventHandler<TAcceptType>,
@@ -110,7 +110,11 @@ export default function createSimpleHandler<TAcceptType extends string>(
               startTime: start,
               params: topicParams,
             });
-            const {__executionunits, ...handlerData} = await params.handler(data, spanContext, logger)
+            const { __executionunits, ...handlerData } = await params.handler(
+              data,
+              spanContext,
+              logger,
+            );
             result.push({
               type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
               data: handlerData,

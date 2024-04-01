@@ -299,6 +299,12 @@ describe('CloudEventHandler Spec', () => {
             required: ['date'],
             additionalProperties: false,
           },
+          executionunits: {
+            type: 'string',
+            default: '1.5',
+            description:
+              'A unit which represents the cost to generate this cloudevent. It can be more than the default in some cases (where it is being generated dynamically)',
+          },
           datacontenttype: {
             type: 'string',
             const: 'application/cloudevents+json; charset=UTF-8',
@@ -378,6 +384,12 @@ describe('CloudEventHandler Spec', () => {
               required: ['status', 'weather'],
               additionalProperties: false,
             },
+            executionunits: {
+              type: 'string',
+              default: '1.5',
+              description:
+                'A unit which represents the cost to generate this cloudevent. It can be more than the default in some cases (where it is being generated dynamically)',
+            },
             datacontenttype: {
               type: 'string',
               const: 'application/cloudevents+json; charset=UTF-8',
@@ -445,6 +457,12 @@ describe('CloudEventHandler Spec', () => {
               },
               required: ['status', 'error'],
               additionalProperties: false,
+            },
+            executionunits: {
+              type: 'string',
+              default: '1.5',
+              description:
+                'A unit which represents the cost to generate this cloudevent. It can be more than the default in some cases (where it is being generated dynamically)',
             },
             datacontenttype: {
               type: 'string',
@@ -526,6 +544,12 @@ describe('CloudEventHandler Spec', () => {
               },
               required: ['event'],
               additionalProperties: false,
+            },
+            executionunits: {
+              type: 'string',
+              default: '1.5',
+              description:
+                'A unit which represents the cost to generate this cloudevent. It can be more than the default in some cases (where it is being generated dynamically)',
             },
             datacontenttype: {
               type: 'string',

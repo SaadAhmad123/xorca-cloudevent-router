@@ -474,6 +474,7 @@ export default class CloudEventHandler<
     type: string,
     data: zod.ZodObject<any>,
     description?: string,
+    executionUnits?: string,
   ) {
     return zodToJsonSchema(
       zod
@@ -487,6 +488,12 @@ export default class CloudEventHandler<
               'The source of the event. It may be in rare cases overriden to due to the handler function behavior. This is not recommended in most cases.',
             ),
           data: data,
+          executionunits: zod
+            .string()
+            .default(executionUnits || '0')
+            .describe(
+              'A unit which represents the cost to generate this cloudevent. It can be more than the default in some cases (where it is being generated dynamically)',
+            ),
           datacontenttype: zod
             .literal('application/cloudevents+json; charset=UTF-8')
             .describe(
@@ -590,6 +597,7 @@ export default class CloudEventHandler<
                 this.params.accepts.type,
                 this.params.accepts.zodSchema,
                 this.params.accepts.description,
+                this.params.executionUnits?.toString(),
               ),
               bindings,
             },
@@ -611,6 +619,7 @@ export default class CloudEventHandler<
                     item.type,
                     item.zodSchema,
                     item.description,
+                    this.params.executionUnits?.toString(),
                   ),
                   bindings,
                 },
@@ -653,9 +662,15 @@ export default class CloudEventHandler<
         this.params.accepts.type,
         this.params.accepts.zodSchema,
         this.params.accepts.description,
+        this.params.executionUnits?.toString(),
       ),
       emits: this.getAllEmits().map((item) =>
-        this.makeEventSchema(item.type, item.zodSchema, item.description),
+        this.makeEventSchema(
+          item.type,
+          item.zodSchema,
+          item.description,
+          this.params.executionUnits?.toString(),
+        ),
       ),
     };
   }
