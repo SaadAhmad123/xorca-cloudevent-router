@@ -176,7 +176,10 @@ export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
     data: Record<string, any>,
     spanContext: SpanContext,
     logger: Logger,
-  ) => Promise<Record<string, any>>;
+  ) => Promise<{
+    __executionunits?: number,
+    [key: string]: any
+  }>;
   timeoutMs?: number;
   logger?: Logger;
   executionUnits?: number;

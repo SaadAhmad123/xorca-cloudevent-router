@@ -1,6 +1,9 @@
 import * as zod from 'zod';
 import CloudEventHandler from '.';
-import { ICreateSimpleCloudEventHandler } from './types';
+import {
+  CloudEventHandlerFunctionOutput,
+  ICreateSimpleCloudEventHandler,
+} from './types';
 import { formatTemplate, timedPromise } from '../utils';
 
 /**
@@ -20,6 +23,8 @@ import { formatTemplate, timedPromise } from '../utils';
  *   },
  *   timeoutMs: 5000, // Optional timeout in milliseconds
  * });
+ * 
+ * If it is required to dynamically assung 
  */
 export default function createSimpleHandler<TAcceptType extends string>(
   params: ICreateSimpleCloudEventHandler<TAcceptType>,
@@ -88,14 +93,12 @@ export default function createSimpleHandler<TAcceptType extends string>(
     }) => {
       const timeoutMs = params.timeoutMs || 10000;
       const start: number = performance.now();
-      let result: {
-        type:
-          | `evt.${TAcceptType}.success`
-          | `evt.${TAcceptType}.error`
-          | `evt.${TAcceptType}.timeout`
-          | `sys.${TAcceptType}.error`;
-        data: Record<string, any>;
-      }[] = [];
+      let result: CloudEventHandlerFunctionOutput<
+        | `evt.${TAcceptType}.success`
+        | `evt.${TAcceptType}.error`
+        | `evt.${TAcceptType}.timeout`
+        | `sys.${TAcceptType}.error`
+      >[] = [];
       try {
         await timedPromise(async () => {
           try {
@@ -107,9 +110,11 @@ export default function createSimpleHandler<TAcceptType extends string>(
               startTime: start,
               params: topicParams,
             });
+            const {__executionunits, ...handlerData} = await params.handler(data, spanContext, logger)
             result.push({
               type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
-              data: await params.handler(data, spanContext, logger),
+              data: handlerData,
+              executionunits: __executionunits,
             });
           } catch (err) {
             const error = err as Error;

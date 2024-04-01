@@ -2,7 +2,11 @@ import CloudEventHandler from '../CloudEventHandler';
 import { CloudEvent } from 'cloudevents';
 import { CloudEventRouterError } from './errors';
 import { matchTemplates, timedPromise } from '../utils';
-import { CloudEventRouterHandlerOptions, CloudEventRouterResponse, ICloudEventRouter } from './types';
+import {
+  CloudEventRouterHandlerOptions,
+  CloudEventRouterResponse,
+  ICloudEventRouter,
+} from './types';
 import zodToJsonSchema from 'zod-to-json-schema';
 import * as zod from 'zod';
 

@@ -19,9 +19,7 @@ export type CloudEventRouterResponse = {
 };
 
 export type CloudEventRouterHandlerOptions = {
-  responseCallback?: (
-    responses: CloudEventRouterResponse[]
-  ) => Promise<void>;
+  responseCallback?: (responses: CloudEventRouterResponse[]) => Promise<void>;
   errorOnNotFound?: boolean;
   timeoutMs?: number;
-}
+};
