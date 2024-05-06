@@ -322,7 +322,7 @@ export default class CloudEventHandler<
     let responses: CloudEventHandlerFunctionOutput<TEmitType>[] = [];
     responses = await this.errorHandledHandler({
       type: event.type as TAcceptType,
-      data: event.data || {},
+      data: this.params.accepts.zodSchema.parse(event.data || {}),
       params: matchResp.result,
       spanContext,
       logger: async (logParams: ILogger) => {
