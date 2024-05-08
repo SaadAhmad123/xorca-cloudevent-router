@@ -5,6 +5,7 @@ import {
   ICreateSimpleCloudEventHandler,
 } from './types';
 import { formatTemplate, timedPromise } from '../utils';
+import TraceParent from '../Telemetry/traceparent';
 
 /**
  * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
@@ -112,7 +113,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
             });
             const { __executionunits, ...handlerData } = await params.handler(
               data,
-              spanContext,
+              TraceParent.create.next(spanContext),
               logger,
             );
             result.push({

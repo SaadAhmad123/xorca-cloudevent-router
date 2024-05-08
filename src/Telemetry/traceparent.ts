@@ -26,6 +26,18 @@ export default class TraceParent {
    */
   static create = {
     /**
+     * Generates the next spanContext given a spanContext
+     * @param spanContext
+     * @returns
+     */
+    next: (spanContext: SpanContext) => {
+      return TraceParent.parse(
+        TraceParent.create.traceparent(spanContext),
+        spanContext.traceState,
+      );
+    },
+
+    /**
      * Generates the version part of the traceparent.
      * @returns {string} - The version string.
      */

@@ -190,7 +190,10 @@ export default class CloudEventHandler<
     event: CloudEventHandlerFunctionInput<TAcceptType, TEventData>,
   ): Promise<CloudEventHandlerFunctionOutput<TEmitType>[]> {
     try {
-      return await this.params.handler(event);
+      return await this.params.handler({
+        ...event,
+        spanContext: TraceParent.create.next(event.spanContext),
+      });
     } catch (e) {
       throw new CloudEventHandlerError(
         `[CloudEventHandler][cloudevent][handler] Handler errored (message=${(e as Error).message})`,
