@@ -10,6 +10,39 @@ export class PromiseTimeoutError extends Error {
   }
 }
 
+const makeCancelablePromise = <T>(
+  promise: Promise<T>,
+) => {
+  let rejectFn: ((reason?: any) => void) | undefined = undefined;
+  let isCanceled = false;
+
+  const newPromise: Promise<T> & { cancel?: (reason?: any) => void } = new Promise((res, rej) => {
+    rejectFn = rej;
+    promise
+      .then(value => {
+        if (!isCanceled) {
+          res(value);
+        }
+      })
+      .catch(error => {
+        if (!isCanceled) {
+          rej(error);
+        }
+      });
+  }) as Promise<T> & { cancel?: (reason?: any) => void };
+
+  newPromise.cancel = (reason?: any) => {
+    if (!isCanceled) {
+      isCanceled = true;
+      if (rejectFn) {
+        rejectFn(reason || "the promise got cancelled");
+      }
+    }
+  };
+
+  return newPromise;
+};
+
 /**
  * Wraps a promise function and adds a timeout feature.
  *
@@ -31,25 +64,64 @@ export class PromiseTimeoutError extends Error {
 export const timedPromise = <T, U extends any[]>(
   promise: (...args: U) => Promise<T>,
   timeoutMs: number,
-) => {
+) => async (...args: U) => new Promise<T>((res, rej) => {
+  let timeoutHandler: any = undefined;
+  const cancelable = makeCancelablePromise(promise(...args));
+  
+  cancelable.then((resp: T) => {
+    if (timeoutHandler) {
+      clearTimeout(timeoutHandler);
+    }
+    res(resp);
+  }).catch(rej);
+  
+  timeoutHandler = setTimeout(() => {
+    cancelable.cancel?.(
+      new PromiseTimeoutError(`Promise timed out after ${timeoutMs}ms.`)
+    );
+  }, timeoutMs);
+});
+
+
+
+  /*
+{
+  const delay = (timeInMs: number = 500) => new Promise(resolve => setTimeout(resolve, timeInMs))
+
   return async (...args: U) => {
     let timeoutHandler: any;
+    let promiseTimedOut: boolean = false
 
     const resp = await Promise.race([
-      promise(...args),
+      new Promise((resolve, reject) => {
+        promise(...args).then(resolve).catch(reject)
+        // const _delay = () => {
+        //   logger?.({promiseTimedOut})
+        //   if (promiseTimedOut) {
+        //     resolve(undefined)
+        //   }
+        //   delay().then(_delay)
+        // }
+        // _delay()
+      }),
       new Promise<T>((_, reject) => {
+        logger?.("setting time out", timeoutMs)
         timeoutHandler = setTimeout(() => {
+          logger?.("setting time out DONE", timeoutMs)
           reject(
             new PromiseTimeoutError(`Promise timed out after ${timeoutMs}ms.`),
           );
         }, timeoutMs);
+        //logger?.("setting time out", timeoutMs, timeoutHandler)
       }),
     ]);
-
+    promiseTimedOut = true
     clearTimeout(timeoutHandler);
+    logger?.({update: true, promiseTimedOut, timeoutHandler})
     return resp;
   };
 };
+  */
 
 /**
  * Checks if a string contains both opening and closing double curly braces.
