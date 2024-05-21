@@ -115,7 +115,7 @@ export default function createHttpHandler<TAcceptType extends string>({
         .optional()
         .describe('The response in utf-8 string format'),
     }),
-    handler: async (data, spanContext, logger) => {
+    handler: async (data, spanContext, logger, {throwOnTimeoutError}) => {
       const formattedHeaders = Object.assign(
         {},
         ...Object.entries((data.headers || {}) as Record<string, string>).map(
@@ -137,6 +137,7 @@ export default function createHttpHandler<TAcceptType extends string>({
             ? formatTemplate(data.body, templateVariables)
             : undefined,
       });
+      throwOnTimeoutError()
 
       const successCodes = Array.from(
         new Set<number>([200, 201, ...(data.successStatusCodes || [])]),
@@ -158,6 +159,7 @@ export default function createHttpHandler<TAcceptType extends string>({
             : value,
         })),
       );
+      
       return {
         statusCode: resp.status,
         statusText: resp.statusText,

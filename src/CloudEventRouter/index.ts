@@ -1,7 +1,7 @@
 import CloudEventHandler from '../CloudEventHandler';
 import { CloudEvent } from 'cloudevents';
 import { CloudEventRouterError } from './errors';
-import { matchTemplates, timedPromise } from '../utils';
+import { matchTemplates } from '../utils';
 import {
   CloudEventRouterHandlerOptions,
   CloudEventRouterResponse,
@@ -53,18 +53,13 @@ export default class CloudEventRouter {
    * @param [options] - An options object
    * @property [options.responseCallback] - A callback function to react to events generated after a handler processed an event. Use this if you don't want to wait for other handlers to finish executions before replying for all the events
    * @param [options.errorOnNotFound] - If true, returns an error for events without a corresponding handler.
-   * @param [options.timeoutMs] - Timeout duration for each CloudEvent processing. Default is 900000ms = 15min.
    * @returns A Promise resolving to an array of processed CloudEvents.
    */
   async cloudevents(
     events: CloudEvent<Record<string, any>>[],
     options?: CloudEventRouterHandlerOptions,
   ) {
-    const {
-      responseCallback,
-      errorOnNotFound = true,
-      timeoutMs = 90000,
-    } = options || {};
+    const { responseCallback, errorOnNotFound = true } = options || {};
     const handlerKeys = Object.keys(this.handlerMap || {});
     return (
       await Promise.all(
@@ -78,13 +73,10 @@ export default class CloudEventRouter {
                 `[CloudEventRouter][cloudevents] No handler found for event.type=${item.type}. The accepts type are: ${handlerKeys.join(', ')}`,
               );
             }
-            const responses = await timedPromise(
-              () =>
-                this.handlerMap[
-                  matchTemplateResp.matchedTemplate
-                ].safeCloudevent(item),
-              timeoutMs,
-            )();
+            const responses =
+              await this.handlerMap[
+                matchTemplateResp.matchedTemplate
+              ].safeCloudevent(item);
             finalResponses = [
               ...finalResponses,
               ...responses.map((resp) => ({

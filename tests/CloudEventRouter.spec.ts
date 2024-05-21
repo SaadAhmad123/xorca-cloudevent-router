@@ -235,8 +235,9 @@ describe('CloudEventRouter spec', () => {
             book_id: zod.string(),
             book_content: zod.string().array(),
           }),
-          handler: async () => {
+          handler: async (data, spanContext, logger, {isTimedOut, throwTimeoutError, throwOnTimeoutError}) => {
             await new Promise((res) => setTimeout(res, 1000));
+            throwOnTimeoutError()
             return {};
           },
         }),
@@ -253,10 +254,11 @@ describe('CloudEventRouter spec', () => {
         datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
     ]);
+    console.log({resp}, null, 2)
     expect(resp.length).toBe(1);
     expect(resp[0].eventToEmit?.type).toBe('evt.books.fetch.timeout');
     expect(resp[0].eventToEmit?.data?.errorMessage).toBe(
-      'Promise timed out after 100ms.',
+      'The createSimpleHandler<books.fetch>.handler timed out after 100',
     );
   });
 });

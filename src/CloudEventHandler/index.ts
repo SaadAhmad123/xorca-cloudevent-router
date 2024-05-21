@@ -49,6 +49,7 @@ export default class CloudEventHandler<
 > {
   constructor(protected params: ICloudEventHandler<TAcceptType, TEmitType>) {
     this.params.name = this.params.name || this.topic;
+    this.params.timeoutMs = this.params.timeoutMs || 4 * 60 * 1000;
     if (this.params.name.includes(' ')) {
       throw new CloudEventHandlerError(
         `[CloudEventHandler][constructor] The 'name' must not contain any spaces or special characters but the provided is ${this.params.name}`,
@@ -323,6 +324,14 @@ export default class CloudEventHandler<
     this.validateCloudEvent(event);
     const matchResp = matchStringTemplate(event.type, this.params.accepts.type);
     let responses: CloudEventHandlerFunctionOutput<TEmitType>[] = [];
+
+    let handlerTimedOut = false;
+    let timeoutHandler: NodeJS.Timeout | undefined = this.params.timeoutMs
+      ? setTimeout(() => {
+          handlerTimedOut = true;
+        }, this.params.timeoutMs)
+      : undefined;
+
     responses = await this.errorHandledHandler({
       type: event.type as TAcceptType,
       data: this.params.accepts.zodSchema.parse(event.data || {}),
@@ -335,7 +344,11 @@ export default class CloudEventHandler<
       source: event.source,
       to: (event.to || undefined) as string | undefined,
       redirectto: (event.redirectto || undefined) as string | undefined,
+      isTimedOut: () => handlerTimedOut,
+      timeoutMs: this.params.timeoutMs as number
     });
+
+    clearTimeout(timeoutHandler);
     return responses.map((resp) =>
       this.convertHandlerResponseToCloudEvent(spanContext, event, resp),
     );

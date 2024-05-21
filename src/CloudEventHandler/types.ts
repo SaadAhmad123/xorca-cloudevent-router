@@ -4,6 +4,22 @@ import { CloudEvent } from 'cloudevents';
 
 export type LogType = 'START' | 'END' | 'ERROR' | 'WARNING' | 'LOG' | 'DEBUG';
 
+/**
+ * Interface for logging within CloudEvent handlers.
+ *
+ * @property {LogType} type - The type of log entry (e.g., 'START', 'END', 'ERROR').
+ * @property {string} source - The source or origin of the log entry.
+ * @property {string} [message] - Optional message providing additional context or information.
+ * @property {SpanContext} [spanContext] - Optional span context for telemetry and tracing.
+ * @property {object} [input] - Optional input details related to the event being processed.
+ * @property {object} [output] - Optional output details related to the event being processed.
+ * @property {object} [params] - Optional additional parameters for the log entry.
+ * @property {Error} [error] - Optional error information if the log entry pertains to an error.
+ * @property {number} [startTime] - Optional start time of the event processing.
+ * @property {number} [endTime] - Optional end time of the event processing.
+ * @property {number} [duration] - Optional duration of the event processing.
+ * @property {object} [attributes] - Optional additional attributes for the log entry.
+ */
 export interface ILogger {
   type: LogType;
   source: string;
@@ -19,6 +35,12 @@ export interface ILogger {
   attributes?: Record<string, any>;
 }
 
+/**
+ * Type definition for the logger function used within CloudEvent handlers.
+ *
+ * @param {ILogger} params - The parameters for the log entry.
+ * @returns {Promise<void>} A promise that resolves when the log entry is complete.
+ */
 export type Logger = (params: ILogger) => Promise<void>;
 
 /**
@@ -58,11 +80,13 @@ export type CloudEventHandlerFunctionOutput<TEmitType extends string> = {
  * @property {TEventData} data - The payload of the event, containing the data that the event carries. The structure is defined by the handler's expectations for the type of event it processes.
  * @property {Record<string, string>} [params] - Optional parameters extracted from the event topic, providing contextual information that can influence event handling logic.
  * @property {SpanContext} spanContext - Provides the telemetry span context for tracing the handling of this event through the system. Essential for observability and troubleshooting.
- * @property {Logger} logger - A logging utility passed through to the handler, allowing for standardized logging practices, including structured logs and tracing support.
  * @property {CloudEvent<Record<string, any>>} event - The original CloudEvent object. This includes the entire event structure as defined by the CloudEvents specification, providing access to standard event metadata and any custom extensions.
  * @property {string} source - The source of the incoming event, identifying where the event originated. This information is critical for understanding the event's context and for routing decisions.
- * @property {string} [to] - The intended target of the incoming event. Ideally, this should match the handler's topic, indicating that the event is being processed by the correct handler.
- * @property {string} [redirectto] - An optional field indicating that the event should be redirected to a different service or handler. This allows for dynamic routing of events based on processing logic or system state.
+ * @property {string} [to] - Optional. The intended target of the incoming event. Ideally, this should match the handler's topic, indicating that the event is being processed by the correct handler.
+ * @property {string} [redirectto] - Optional. An indication that the event should be redirected to a different service or handler. This allows for dynamic routing of events based on processing logic or system state.
+ * @property {Logger} logger - A logging utility passed through to the handler, allowing for standardized logging practices, including structured logs and tracing support.
+ * @property {() => boolean} isTimedOut - A function to check if the handler has exceeded the timeout limit.
+ * @property {number} timeoutMs - The total timeout duration for the event processing, in milliseconds.
  */
 export type CloudEventHandlerFunctionInput<
   TAcceptType extends string,
@@ -72,11 +96,13 @@ export type CloudEventHandlerFunctionInput<
   data: TEventData;
   params?: Record<string, string>;
   spanContext: SpanContext;
-  logger: Logger;
   event: CloudEvent<Record<string, any>>;
   source: string;
   to?: string;
   redirectto?: string;
+  logger: Logger;
+  isTimedOut: () => boolean;
+  timeoutMs: number
 };
 
 /**
@@ -109,6 +135,7 @@ export type CloudEventValidationSchema<TType extends string> = {
  * @property {Logger} [logger] - An optional logging utility passed to the handler, enabling standardized logging practices. This is particularly useful for debugging, monitoring, and tracing event handling.
  * @property {number} [executionUnits] - An optional parameter which quantifies one execution of the function. e.g if it is 1.5 then it took 1.5 units to execute the handler. This number will appear in the CloudEvent extensions under field 'executionunits'
  * @property {boolean} [disableRoutingMetadata] - If set, the output cloudevent `to` and `redirectto` field will be forced to `null`.
+ * @property {boolean} [timeoutMs] - In milliseconds, set how much time should this handler take. The default is 4 minutes
  *
  * @example
  * // Example of a CloudEvent handler for user creation events.
@@ -144,7 +171,27 @@ export interface ICloudEventHandler<
   logger?: Logger;
   executionUnits?: number;
   disableRoutingMetadata?: boolean;
+  timeoutMs?: number;
 }
+
+/**
+ * Options for handling timeouts within a CloudEvent handler.
+ * This type defines the structure for managing and checking timeouts during the processing of events.
+ *
+ * @property {number} startMs - The start time of the event processing, in milliseconds since the epoch.
+ * @property {number} timeoutMs - The total timeout duration for the event processing, in milliseconds.
+ * @property {() => boolean} isTimedOut - A function that checks if the handler has exceeded the timeout limit.
+ * @property {() => void} throwTimeoutError - A function that throws a timeout error immediately.
+ * @property {() => void} throwOnTimeoutError - A function that throws a timeout error if a timeout is detected.
+ */
+export type TimeoutOptions = {
+  startMs: number
+  timeoutMs: number
+  isTimedOut: () => boolean,
+  throwTimeoutError: () => void,
+  throwOnTimeoutError: () => void,
+}
+
 
 /**
  * Interface for creating a simple CloudEventHandler focused on handling asynchronous commands and events.
@@ -176,6 +223,7 @@ export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
     data: Record<string, any>,
     spanContext: SpanContext,
     logger: Logger,
+    timeoutOptions: TimeoutOptions
   ) => Promise<{
     [key: string]: any;
     __executionunits?: number;

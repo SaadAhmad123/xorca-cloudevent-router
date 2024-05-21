@@ -4,8 +4,16 @@ import {
   CloudEventHandlerFunctionOutput,
   ICreateSimpleCloudEventHandler,
 } from './types';
-import { formatTemplate, timedPromise } from '../utils';
+import { formatTemplate } from '../utils';
 import TraceParent from '../Telemetry/traceparent';
+
+class TimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TimeoutError';
+  }  
+}
+
 
 /**
  * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
@@ -37,6 +45,7 @@ export default function createSimpleHandler<TAcceptType extends string>(
     | `evt.${TAcceptType}.timeout`
     | `sys.${TAcceptType}.error`
   >({
+    timeoutMs: params.timeoutMs,
     disableRoutingMetadata: params.disableRoutingMetadata,
     executionUnits: params.executionUnits,
     name: params.name || `cmd.${params.accepts.type}`,
@@ -91,8 +100,9 @@ export default function createSimpleHandler<TAcceptType extends string>(
       params: topicParams,
       spanContext,
       logger,
+      isTimedOut,
+      timeoutMs
     }) => {
-      const timeoutMs = params.timeoutMs || 10000;
       const start: number = performance.now();
       let result: CloudEventHandlerFunctionOutput<
         | `evt.${TAcceptType}.success`
@@ -100,49 +110,44 @@ export default function createSimpleHandler<TAcceptType extends string>(
         | `evt.${TAcceptType}.timeout`
         | `sys.${TAcceptType}.error`
       >[] = [];
+
+      const throwTimeoutError = () => {throw new TimeoutError(`The createSimpleHandler<${params.name || params.accepts.type}>.handler timed out after ${timeoutMs}`)}
+
       try {
-        await timedPromise(async () => {
-          try {
-            await logger({
-              type: 'START',
-              source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-              spanContext,
-              input: { type, data },
-              startTime: start,
-              params: topicParams,
-            });
-            const { __executionunits, ...handlerData } = await params.handler(
-              data,
-              TraceParent.create.next(spanContext),
-              logger,
-            );
-            result.push({
-              type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
-              data: handlerData,
-              executionunits: __executionunits,
-            });
-          } catch (err) {
-            const error = err as Error;
-            await logger({
-              type: 'ERROR',
-              source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-              spanContext,
-              input: { type, data },
-              params: topicParams,
-              error,
-            });
-            result.push({
-              type: `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`,
-              data: {
-                errorName: (error as Error)?.name,
-                errorMessage: (error as Error)?.message,
-                errorStack: (error as Error)?.stack,
-              },
-            });
+        await logger({
+          type: 'START',
+          source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
+          spanContext,
+          input: { type, data },
+          startTime: start,
+          params: topicParams,
+        });
+        const { __executionunits, ...handlerData } = await params.handler(
+          data,
+          TraceParent.create.next(spanContext),
+          logger,
+          {
+            startMs: start,
+            timeoutMs,
+            isTimedOut,
+            throwTimeoutError,
+            throwOnTimeoutError: () => {
+              if (!isTimedOut()) return
+              throwTimeoutError()
+            },
           }
-        }, timeoutMs)();
+        );
+        result.push({
+          type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
+          data: handlerData,
+          executionunits: __executionunits,
+        });
       } catch (err) {
         const error = err as Error;
+        let eventType: string = `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`
+        if (error.name === "TimeoutError") {
+          eventType = `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`
+        }
         await logger({
           type: 'ERROR',
           source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
@@ -152,12 +157,12 @@ export default function createSimpleHandler<TAcceptType extends string>(
           error,
         });
         result.push({
-          type: `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`,
+          type: eventType as any,
           data: {
             timeout: timeoutMs,
-            errorName: (err as Error)?.name,
-            errorMessage: (err as Error)?.message,
-            errorStack: (err as Error)?.stack,
+            errorName: error.name,
+            errorMessage: error.message,
+            errorStack: error.stack,
             eventData: { type, data },
           },
         });
@@ -187,3 +192,16 @@ export default function createSimpleHandler<TAcceptType extends string>(
     },
   });
 }
+
+
+/**
+ * 
+ * try {
+        await timedPromise(async () => {
+          
+        }, timeoutMs)();
+      } catch (err) {
+        const error = err as Error;
+        
+      }
+ */
