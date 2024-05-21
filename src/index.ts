@@ -15,7 +15,6 @@ import createHttpHandler from './CloudEventHandler/createHttpHandler';
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
-import { PromiseTimeoutError, timedPromise } from './utils';
 import { SpanContext, TraceFlags } from './Telemetry/types';
 import TraceParent from './Telemetry/traceparent';
 
@@ -26,10 +25,8 @@ export {
   CloudEventRouter,
   CloudEventHandlerError,
   CloudEventRouterError,
-  PromiseTimeoutError,
   createSimpleHandler,
   createHttpHandler,
-  timedPromise,
   CloudEventValidationSchema,
   ICloudEventHandler,
   ICloudEventRouter,
