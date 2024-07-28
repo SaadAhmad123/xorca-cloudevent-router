@@ -1,47 +1,7 @@
 import * as zod from 'zod';
-import { SpanContext } from '../Telemetry/types';
-import { CloudEvent } from 'cloudevents';
-
-export type LogType = 'START' | 'END' | 'ERROR' | 'WARNING' | 'LOG' | 'DEBUG';
-
-/**
- * Interface for logging within CloudEvent handlers.
- *
- * @property {LogType} type - The type of log entry (e.g., 'START', 'END', 'ERROR').
- * @property {string} source - The source or origin of the log entry.
- * @property {string} [message] - Optional message providing additional context or information.
- * @property {SpanContext} [spanContext] - Optional span context for telemetry and tracing.
- * @property {object} [input] - Optional input details related to the event being processed.
- * @property {object} [output] - Optional output details related to the event being processed.
- * @property {object} [params] - Optional additional parameters for the log entry.
- * @property {Error} [error] - Optional error information if the log entry pertains to an error.
- * @property {number} [startTime] - Optional start time of the event processing.
- * @property {number} [endTime] - Optional end time of the event processing.
- * @property {number} [duration] - Optional duration of the event processing.
- * @property {object} [attributes] - Optional additional attributes for the log entry.
- */
-export interface ILogger {
-  type: LogType;
-  source: string;
-  message?: string;
-  spanContext?: SpanContext;
-  input?: { type: string; data: Record<string, any>; [key: string]: any };
-  output?: { type: string; data: Record<string, any>; [key: string]: any };
-  params?: Record<string, any>;
-  error?: Error;
-  startTime?: number;
-  endTime?: number;
-  duration?: number;
-  attributes?: Record<string, any>;
-}
-
-/**
- * Type definition for the logger function used within CloudEvent handlers.
- *
- * @param {ILogger} params - The parameters for the log entry.
- * @returns {Promise<void>} A promise that resolves when the log entry is complete.
- */
-export type Logger = (params: ILogger) => Promise<void>;
+import { XOrcaCloudEvent } from '../XOrcaCloudEvent';
+import { CloudEventHandlerError } from './errors';
+import { Context, Span, Tracer } from '@opentelemetry/api';
 
 /**
  * Defines the output of a Cloud Event Handler function.
@@ -67,6 +27,7 @@ export type CloudEventHandlerFunctionOutput<TEmitType extends string> = {
   redirectto?: string;
   to?: string;
   executionunits?: number;
+  
 };
 
 /**
@@ -80,7 +41,7 @@ export type CloudEventHandlerFunctionOutput<TEmitType extends string> = {
  * @property {TEventData} data - The payload of the event, containing the data that the event carries. The structure is defined by the handler's expectations for the type of event it processes.
  * @property {Record<string, string>} [params] - Optional parameters extracted from the event topic, providing contextual information that can influence event handling logic.
  * @property {SpanContext} spanContext - Provides the telemetry span context for tracing the handling of this event through the system. Essential for observability and troubleshooting.
- * @property {CloudEvent<Record<string, any>>} event - The original CloudEvent object. This includes the entire event structure as defined by the CloudEvents specification, providing access to standard event metadata and any custom extensions.
+ * @property {XOrcaCloudEvent<Record<string, any>>} event - The original CloudEvent object. This includes the entire event structure as defined by the CloudEvents specification, providing access to standard event metadata and any custom extensions.
  * @property {string} source - The source of the incoming event, identifying where the event originated. This information is critical for understanding the event's context and for routing decisions.
  * @property {string} [to] - Optional. The intended target of the incoming event. Ideally, this should match the handler's topic, indicating that the event is being processed by the correct handler.
  * @property {string} [redirectto] - Optional. An indication that the event should be redirected to a different service or handler. This allows for dynamic routing of events based on processing logic or system state.
@@ -94,15 +55,17 @@ export type CloudEventHandlerFunctionInput<
 > = {
   type: TAcceptType;
   data: TEventData;
-  params?: Record<string, string>;
-  spanContext: SpanContext;
-  event: CloudEvent<Record<string, any>>;
+  event: XOrcaCloudEvent<Record<string, any>>;
   source: string;
+  openTelemetry: {
+    span: Span,
+    tracer: Tracer
+  }
+  isTimedOut: () => boolean;
+  timeoutMs: number;
+  params?: Record<string, string>;
   to?: string;
   redirectto?: string;
-  logger: Logger;
-  isTimedOut: () => boolean;
-  timeoutMs: number
 };
 
 /**
@@ -168,11 +131,17 @@ export interface ICloudEventHandler<
   handler: <TEventData extends Record<string, any> = Record<string, any>>(
     event: CloudEventHandlerFunctionInput<TAcceptType, TEventData>,
   ) => Promise<CloudEventHandlerFunctionOutput<TEmitType>[]>;
-  logger?: Logger;
   executionUnits?: number;
   disableRoutingMetadata?: boolean;
   timeoutMs?: number;
 }
+
+export interface ISafeCloudEventResponse {
+  success: boolean;
+  eventToEmit: XOrcaCloudEvent<Record<string, any>>;
+  error?: CloudEventHandlerError
+}
+
 
 /**
  * Options for handling timeouts within a CloudEvent handler.
@@ -221,15 +190,16 @@ export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
   emits: zod.ZodObject<any>;
   handler: (
     data: Record<string, any>,
-    spanContext: SpanContext,
-    logger: Logger,
+    openTelemetry: {
+      span: Span,
+      tracer: Tracer,
+    },
     timeoutOptions: TimeoutOptions
   ) => Promise<{
     [key: string]: any;
     __executionunits?: number;
   }>;
   timeoutMs?: number;
-  logger?: Logger;
   executionUnits?: number;
   disableRoutingMetadata?: boolean;
 }
@@ -274,7 +244,6 @@ export interface ICreateHttpCloudEventHandler<TAcceptType extends string> {
   variables?: Record<string, VariableType>;
   whitelistedUrls?: string[];
   timeoutMs?: number;
-  logger?: Logger;
   executionUnits?: number;
   disableRoutingMetadata?: boolean;
 }

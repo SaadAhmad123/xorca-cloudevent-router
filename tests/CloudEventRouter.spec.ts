@@ -1,9 +1,8 @@
 import * as zod from 'zod';
 import CloudEventHandler from '../src/CloudEventHandler';
 import CloudEventRouter from '../src/CloudEventRouter';
-import { CloudEvent } from 'cloudevents';
-
 import createSimpleHandler from '../src/CloudEventHandler/createSimpleHandler';
+import XOrcaCloudEvent from '../src/XOrcaCloudEvent';
 
 const bookFetchHandler = createSimpleHandler({
   name: '{{resource}}.fetch',
@@ -64,7 +63,7 @@ describe('CloudEventRouter spec', () => {
       handlers,
     });
     const resp = await router.cloudevents([
-      new CloudEvent({
+      new XOrcaCloudEvent({
         subject: 'saad',
         type: 'cmd.books.fetch',
         data: {
@@ -73,7 +72,7 @@ describe('CloudEventRouter spec', () => {
         source: '/test',
         datacontenttype: 'application/cloudevents+json; charset=UTF-8',
       }),
-      new CloudEvent({
+      new XOrcaCloudEvent({
         subject: 'saad',
         type: 'cmd.gpt.summary',
         data: {
@@ -103,7 +102,7 @@ describe('CloudEventRouter spec', () => {
       handlers,
     });
     const resp = await router.cloudevents([
-      new CloudEvent({
+      new XOrcaCloudEvent({
         subject: 'saad',
         type: 'evt.books.fetch',
         data: {
@@ -160,7 +159,7 @@ describe('CloudEventRouter spec', () => {
       ],
     });
     const resp = await router.cloudevents([
-      new CloudEvent({
+      new XOrcaCloudEvent({
         subject: 'saad',
         type: 'cmd.books.fetch',
         data: {
@@ -201,7 +200,7 @@ describe('CloudEventRouter spec', () => {
       ],
     });
     const resp = await router.cloudevents([
-      new CloudEvent({
+      new XOrcaCloudEvent({
         subject: 'saad',
         type: 'cmd.books.fetch',
         data: {
@@ -235,7 +234,7 @@ describe('CloudEventRouter spec', () => {
             book_id: zod.string(),
             book_content: zod.string().array(),
           }),
-          handler: async (data, spanContext, logger, {isTimedOut, throwTimeoutError, throwOnTimeoutError}) => {
+          handler: async (data, openTelemetry, {isTimedOut, throwTimeoutError, throwOnTimeoutError}) => {
             await new Promise((res) => setTimeout(res, 1000));
             throwOnTimeoutError()
             return {};
@@ -244,7 +243,7 @@ describe('CloudEventRouter spec', () => {
       ],
     });
     const resp = await router.cloudevents([
-      new CloudEvent({
+      new XOrcaCloudEvent({
         subject: 'saad',
         type: 'cmd.books.fetch',
         data: {

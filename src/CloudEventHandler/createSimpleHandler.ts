@@ -5,15 +5,15 @@ import {
   ICreateSimpleCloudEventHandler,
 } from './types';
 import { formatTemplate } from '../utils';
-import TraceParent from '../Telemetry/traceparent';
+import { logToSpan } from '../Telemetry';
+import { SpanStatusCode } from '@opentelemetry/api';
 
 class TimeoutError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'TimeoutError';
-  }  
+  }
 }
-
 
 /**
  * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
@@ -50,7 +50,6 @@ export default function createSimpleHandler<TAcceptType extends string>(
     executionUnits: params.executionUnits,
     name: params.name || `cmd.${params.accepts.type}`,
     description: params.description,
-    logger: params.logger,
     accepts: {
       type: `cmd.${params.accepts.type}`,
       description: params.accepts.description,
@@ -98,110 +97,75 @@ export default function createSimpleHandler<TAcceptType extends string>(
       type,
       data,
       params: topicParams,
-      spanContext,
-      logger,
+      openTelemetry,
       isTimedOut,
       timeoutMs
     }) => {
-      const start: number = performance.now();
-      let result: CloudEventHandlerFunctionOutput<
-        | `evt.${TAcceptType}.success`
-        | `evt.${TAcceptType}.error`
-        | `evt.${TAcceptType}.timeout`
-        | `sys.${TAcceptType}.error`
-      >[] = [];
+      const throwTimeoutError = () => { throw new TimeoutError(`The createSimpleHandler<${params.name || params.accepts.type}>.handler timed out after ${timeoutMs}`) }
 
-      const throwTimeoutError = () => {throw new TimeoutError(`The createSimpleHandler<${params.name || params.accepts.type}>.handler timed out after ${timeoutMs}`)}
-
-      try {
-        await logger({
-          type: 'START',
-          source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-          spanContext,
-          input: { type, data },
-          startTime: start,
-          params: topicParams,
-        });
-        const { __executionunits, ...handlerData } = await params.handler(
-          data,
-          TraceParent.create.next(spanContext),
-          logger,
-          {
-            startMs: start,
-            timeoutMs,
-            isTimedOut,
-            throwTimeoutError,
-            throwOnTimeoutError: () => {
-              if (!isTimedOut()) return
-              throwTimeoutError()
+      return await openTelemetry.tracer.startActiveSpan(`createSimpleHandler<${params.name || params.accepts.type}>.handler`, async (span) => {
+        let result: CloudEventHandlerFunctionOutput<
+          | `evt.${TAcceptType}.success`
+          | `evt.${TAcceptType}.error`
+          | `evt.${TAcceptType}.timeout`
+          | `sys.${TAcceptType}.error`
+        >[] = [];
+        const start = performance.now()
+        try {
+          const { __executionunits, ...handlerData } = await params.handler(
+            data,
+            {
+              span: span,
+              tracer: openTelemetry.tracer
             },
-          }
-        );
-        result.push({
-          type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
-          data: handlerData,
-          executionunits: __executionunits,
-        });
-      } catch (err) {
-        const error = err as Error;
-        let eventType: string = `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`
-        if (error.name === "TimeoutError") {
-          eventType = `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`
+            {
+              startMs: start,
+              timeoutMs,
+              isTimedOut,
+              throwTimeoutError,
+              throwOnTimeoutError: () => {
+                if (!isTimedOut()) return
+                throwTimeoutError()
+              },
+            }
+          );
+          result.push({
+            type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
+            data: handlerData,
+            executionunits: __executionunits,
+          });
+          span.setStatus({
+            code: SpanStatusCode.OK
+          })
         }
-        await logger({
-          type: 'ERROR',
-          source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-          spanContext,
-          input: { type, data },
-          params: topicParams,
-          error,
-        });
-        result.push({
-          type: eventType as any,
-          data: {
-            timeout: timeoutMs,
-            errorName: error.name,
-            errorMessage: error.message,
-            errorStack: error.stack,
-            eventData: { type, data },
-          },
-        });
-      }
-      const endTime = performance.now();
-      await Promise.all(
-        result.map(
-          async (item) =>
-            await logger?.({
-              type: 'LOG',
-              source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-              spanContext,
-              output: item,
-            }),
-        ),
-      );
-      await logger?.({
-        type: 'END',
-        source: `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-        spanContext,
-        startTime: start,
-        endTime,
-        duration: endTime - start,
-        params: topicParams,
-      });
-      return result;
+        catch (err) {
+          const error = err as Error;
+          span.setStatus({
+            code: SpanStatusCode.ERROR,
+            message: error.message
+          })
+          logToSpan(span, {
+            level: "ERROR",
+            message: error.message,
+          })
+          let eventType: string = `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`
+          if (error.name === "TimeoutError") {
+            eventType = `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`
+          }
+          result.push({
+            type: eventType as any,
+            data: {
+              timeout: timeoutMs,
+              errorName: error.name,
+              errorMessage: error.message,
+              errorStack: error.stack,
+              eventData: { type, data },
+            },
+          });
+        }
+        span.end()
+        return result
+      })
     },
   });
 }
-
-
-/**
- * 
- * try {
-        await timedPromise(async () => {
-          
-        }, timeoutMs)();
-      } catch (err) {
-        const error = err as Error;
-        
-      }
- */

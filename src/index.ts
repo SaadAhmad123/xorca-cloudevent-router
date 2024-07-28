@@ -3,9 +3,6 @@ import { CloudEventHandlerError } from './CloudEventHandler/errors';
 import {
   CloudEventValidationSchema,
   ICloudEventHandler,
-  Logger,
-  ILogger,
-  LogType,
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,
 } from './CloudEventHandler/types';
@@ -15,8 +12,6 @@ import createHttpHandler from './CloudEventHandler/createHttpHandler';
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
-import { SpanContext, TraceFlags } from './Telemetry/types';
-import TraceParent from './Telemetry/traceparent';
 
 export {
   CloudEventHandler,
@@ -29,11 +24,5 @@ export {
   createHttpHandler,
   CloudEventValidationSchema,
   ICloudEventHandler,
-  ICloudEventRouter,
-  SpanContext,
-  Logger,
-  ILogger,
-  LogType,
-  TraceParent,
-  TraceFlags,
+  ICloudEventRouter
 };

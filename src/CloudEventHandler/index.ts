@@ -1,17 +1,17 @@
 import * as zod from 'zod';
-import { CloudEvent } from 'cloudevents';
+import XOrcaCloudEvent from '../XOrcaCloudEvent';
 import {
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,
   ICloudEventHandler,
-  ILogger,
-  Logger,
+  ISafeCloudEventResponse,
 } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { cleanString, matchStringTemplate } from '../utils';
-import TraceParent from '../Telemetry/traceparent';
-import { SpanContext } from '../Telemetry/types';
+import { trace, context, propagation, diag, Context, Span, Tracer, SpanKind, SpanStatusCode } from '@opentelemetry/api';
+import { getActiveContext, logToSpan, parseContext } from '../Telemetry';
+import { TelemetryContext } from '../Telemetry/types';
 
 /**
  * A class for creating and managing CloudEvent handlers, facilitating type validation,
@@ -47,13 +47,29 @@ export default class CloudEventHandler<
   TAcceptType extends string,
   TEmitType extends string,
 > {
+  private otelTracer: Tracer
+
   constructor(protected params: ICloudEventHandler<TAcceptType, TEmitType>) {
     this.params.name = this.params.name || this.topic;
     this.params.timeoutMs = this.params.timeoutMs || 4 * 60 * 1000;
+    this.otelTracer = trace.getTracer(this.topic)
+
     if (this.params.name.includes(' ')) {
       throw new CloudEventHandlerError(
         `[CloudEventHandler][constructor] The 'name' must not contain any spaces or special characters but the provided is ${this.params.name}`,
       );
+    }
+  }
+
+  protected getSpanAttributes(event: XOrcaCloudEvent<any>) {
+    return {
+      'cloudevents.xorca.to_process.event_id': event.id || '',
+      'cloudevents.xorca.to_process.event_source': event.source || '',
+      'cloudevents.xorca.to_process.event_spec_version': event.specversion || '',
+      'cloudevents.xorca.to_process.event_subject': event.subject || '',
+      'cloudevents.xorca.to_process.event_type': event.type || '',
+      'cloudevents.xorca.to_process.event_redirectto': event.redirectto || '',
+      'cloudevents.xorca.to_process.event_to': event.to || ''
     }
   }
 
@@ -97,39 +113,6 @@ export default class CloudEventHandler<
   }
 
   /**
-   * Retrieves the current logger function assigned to this handler.
-   *
-   * @returns The logger function used by this handler for logging operations.
-   */
-  public getLogger() {
-    return this.params.logger;
-  }
-
-  /**
-   * Assigns a new logger function to this handler, allowing for custom logging implementations.
-   *
-   * @param logger - A Logger function to be used by this handler.
-   * @returns The instance of this CloudEventHandler, enabling method chaining.
-   */
-  public setLogger(logger: Logger) {
-    this.params.logger = logger;
-    return this;
-  }
-
-  /**
-   * A wrapper method around the logger function to handle logging operations safely, catching and logging any errors encountered during logging.
-   *
-   * @param logParams - Parameters to be logged, adhering to the ILogger interface.
-   */
-  protected async logger(logParams: ILogger) {
-    try {
-      await this.getLogger()?.(logParams);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  /**
    * Validates the structure and content of a CloudEvent against the expected schema.
    * This includes checking for the presence of mandatory properties such as 'subject', 'type', 'data',
    * and 'datacontenttype', and ensuring the 'datacontenttype' is compatible with CloudEvents standards.
@@ -138,9 +121,9 @@ export default class CloudEventHandler<
    * @throws {CloudEventHandlerError} If any validations fail, including missing properties or incorrect 'datacontenttype'.
    * @protected
    */
-  protected validateCloudEvent(event: CloudEvent<Record<string, any>>) {
+  protected validateCloudEvent(event: XOrcaCloudEvent<Record<string, any>>) {
     for (const prop of ['subject', 'type', 'data', 'datacontenttype']) {
-      if (!event[prop]) {
+      if (!event.toJSON()[prop]) {
         throw new CloudEventHandlerError(
           `[CloudEventHandler][cloudevent] The ${prop} MUST be provided.`,
           event,
@@ -193,16 +176,20 @@ export default class CloudEventHandler<
     try {
       return await this.params.handler({
         ...event,
-        spanContext: TraceParent.create.next(event.spanContext),
       });
     } catch (e) {
-      throw new CloudEventHandlerError(
+      const error = new CloudEventHandlerError(
         `[CloudEventHandler][cloudevent][handler] Handler errored (message=${(e as Error).message})`,
         event.event,
         {
           error: (e as Error).toString(),
         },
       );
+      logToSpan(event.openTelemetry.span, {
+        level: "ERROR",
+        message: error.message,
+      })
+      throw error
     }
   }
 
@@ -212,18 +199,8 @@ export default class CloudEventHandler<
    * behind constructing the final `CloudEvent`, focusing on how and why certain fields are overwritten based on the handler's
    * response and the original incoming event.
    *
-   * - **type**: Directly taken from `contentForOutgoingEvent.type`, indicating the specific type of event being emitted as a result of the processing.
-   * - **data**: Uses `contentForOutgoingEvent.data` as the payload for the outgoing event, ensuring the data is relevant to the event type.
-   * - **source**: Prefers `contentForOutgoingEvent.source` if provided; otherwise, looks for handlers name else defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
-   * - **subject**: Falls back to `incomingEvent.subject` if not specified in `contentForOutgoingEvent`, maintaining context across event processing flows.
-   * - **datacontenttype**: Inherits from `incomingEvent`, typically `'application/cloudevents+json; charset=UTF-8'`, ensuring consistency in event data formatting.
-   * - **traceparent** and **tracestate**: Generated based on `spanContext`, facilitating distributed tracing by carrying over trace information from the incoming event or initiating a new trace context.
-   * - **to**: Chooses `contentForOutgoingEvent.to` if available, followed by `incomingEvent.redirectto`, then `incomingEvent.source`, and finally defaults to `null` if none are provided. This prioritization allows explicit routing of the event, with `to` specifying the intended recipient(s) or topic(s).
-   * - **redirectto**: Directly from `contentForOutgoingEvent.redirectto`, allowing for dynamic redirection of the event post-processing, overriding any redirection implied by the incoming event.
-   *
    * This construction logic ensures that the outgoing `CloudEvent` accurately reflects the results of the event processing, with appropriate metadata for routing, identification, and tracing.
    *
-   * @param spanContext - The distributed tracing context for the operation, supporting traceability across services.
    * @param incomingEvent - The original CloudEvent that was processed, providing a basis for deriving metadata for the response event.
    * @param contentForOutgoingEvent - The handler's response object, containing the specifics for the type, data, and optionally, source, subject, to, and redirectto for the response event.
    * @returns A new `CloudEvent` constructed from the handler response, ready for emission.
@@ -231,9 +208,10 @@ export default class CloudEventHandler<
    * @protected
    */
   protected convertHandlerResponseToCloudEvent(
-    spanContext: SpanContext,
-    incomingEvent: CloudEvent<Record<string, any>>,
+    incomingEvent: XOrcaCloudEvent<Record<string, any>>,
     contentForOutgoingEvent: CloudEventHandlerFunctionOutput<TEmitType>,
+    elapsedTime: number,
+    carrier: TelemetryContext,
   ) {
     // Checking if the response type matching as one of the emits
     const respEvent = this.params.emits.filter(
@@ -269,31 +247,26 @@ export default class CloudEventHandler<
 
     const executionUnits =
       contentForOutgoingEvent.executionunits || this.params.executionUnits || 0;
-    return new CloudEvent<Record<string, any>>({
+    return new XOrcaCloudEvent<Record<string, any>>({
       to:
         !this.params.disableRoutingMetadata && toField
-          ? encodeURI(toField)
-          : null,
+          ? toField
+          : undefined,
       redirectto:
         !this.params.disableRoutingMetadata &&
-        contentForOutgoingEvent.redirectto
-          ? encodeURI(contentForOutgoingEvent.redirectto)
-          : null,
+          contentForOutgoingEvent.redirectto
+          ? contentForOutgoingEvent.redirectto
+          : undefined,
       type: contentForOutgoingEvent.type,
       data: {
         ...(contentForOutgoingEvent.data || {}),
-        //__executionunits: executionUnits.toString(),
       },
-      source: encodeURI(
-        contentForOutgoingEvent.source || this.params.name || this.topic,
-      ),
+      source: contentForOutgoingEvent.source || this.params.name || this.topic,
       subject: contentForOutgoingEvent.subject || incomingEvent.subject,
-      datacontenttype:
-        incomingEvent.datacontenttype ||
-        'application/cloudevents+json; charset=UTF-8',
-      traceparent: TraceParent.create.traceparent(spanContext),
-      tracestate: spanContext.traceState || null,
+      traceparent: carrier.traceparent,
+      tracestate: carrier.tracestate,
       executionunits: executionUnits.toString(),
+      elapsedtime: elapsedTime.toString(),
     });
   }
 
@@ -301,26 +274,16 @@ export default class CloudEventHandler<
    * Core method for processing an incoming CloudEvent. Validates the event, matches it against the accepted type,
    * and invokes the handler function. Supports distributed tracing by incorporating `traceparent` and `tracestate`.
    *
-   * The output events have the fields which follow the logic mentioned below
-   * - **type**: Directly taken from `Return<handler>.type`, indicating the specific type of event being emitted as a result of the processing.
-   * - **data**: Uses `Return<handler>.data` as the payload for the outgoing event, ensuring the data is relevant to the event type.
-   * - **source**: Prefers `Return<handler>.source` if provided; otherwise, looks for handlers name else defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
-   * - **subject**: Falls back to `incomingEvent.subject` if not specified in `Return<handler>.subject`, maintaining context across event processing flows.
-   * - **datacontenttype**: Inherits from `incomingEvent`, typically `'application/cloudevents+json; charset=UTF-8'`, ensuring consistency in event data formatting.
-   * - **traceparent** and **tracestate**: Generated based on `spanContext`, facilitating distributed tracing by carrying over trace information from the incoming event or initiating a new trace context.
-   * - **to**: Chooses `Return<handler>.to` if available, followed by `incomingEvent.redirectto`, then `incomingEvent.source`, and finally defaults to `null` if none are provided. This prioritization allows explicit routing of the event, with `to` specifying the intended recipient(s) or topic(s).
-   * - **redirectto**: Directly from `Return<handler>.redirectto`, allowing for dynamic redirection of the event post-processing, overriding any redirection implied by the incoming event.
-   *
    * @param event - The CloudEvent to be processed.
-   * @param spanContext - Optional. A SpanContext for distributed tracing, defaulting to a new trace if not provided.
+   * 
    * @returns A Promise that resolves to an array of emitted CloudEvents as a result of processing.
    * @throws {CloudEventHandlerError} If event validation fails or the handler function encounters an error.
    * @public
    */
-  async cloudevent(
-    event: CloudEvent<Record<string, any>>,
-    spanContext: SpanContext = TraceParent.parse(),
-  ): Promise<CloudEvent<Record<string, any>>[]> {
+  protected async cloudevent(
+    event: XOrcaCloudEvent<Record<string, any>>,
+    span: Span
+  ): Promise<XOrcaCloudEvent<Record<string, any>>[]> {
     this.validateCloudEvent(event);
     const matchResp = matchStringTemplate(event.type, this.params.accepts.type);
     let responses: CloudEventHandlerFunctionOutput<TEmitType>[] = [];
@@ -328,29 +291,32 @@ export default class CloudEventHandler<
     let handlerTimedOut = false;
     let timeoutHandler: NodeJS.Timeout | undefined = this.params.timeoutMs
       ? setTimeout(() => {
-          handlerTimedOut = true;
-        }, this.params.timeoutMs)
+        handlerTimedOut = true;
+      }, this.params.timeoutMs)
       : undefined;
 
+    const start = performance.now()
     responses = await this.errorHandledHandler({
       type: event.type as TAcceptType,
       data: this.params.accepts.zodSchema.parse(event.data || {}),
       params: matchResp.result,
-      spanContext,
-      logger: async (logParams: ILogger) => {
-        await this.logger(logParams);
-      },
       event,
       source: event.source,
       to: (event.to || undefined) as string | undefined,
       redirectto: (event.redirectto || undefined) as string | undefined,
       isTimedOut: () => handlerTimedOut,
-      timeoutMs: this.params.timeoutMs as number
+      timeoutMs: this.params.timeoutMs as number,
+      openTelemetry: {
+        span: span,
+        tracer: this.otelTracer
+      }
     });
+    const elapsedTime = performance.now() - start
 
     clearTimeout(timeoutHandler);
+    const carrier = parseContext(span)
     return responses.map((resp) =>
-      this.convertHandlerResponseToCloudEvent(spanContext, event, resp),
+      this.convertHandlerResponseToCloudEvent(event, resp, elapsedTime, carrier),
     );
   }
 
@@ -360,120 +326,87 @@ export default class CloudEventHandler<
    * errors or uncaught handler errors, are captured and returned as specially formatted error CloudEvents.
    * This approach maintains system resilience and provides meaningful feedback on failures.
    *
-   * The logic for constructing the output `CloudEvent`, including the error event, follows specific rules:
-   * - **type**: Taken directly from the handler's return value (`Return<handler>.type`), indicating the specific type of event being emitted. For error events, it is formatted as `sys.${this.params.name}.error`.
-   * - **data**: The payload is sourced from `Return<handler>.data` for successful events. For error events, it includes error details such as name, message, stack, and additional info.
-   * - **source**: Prefers `Return<handler>.source` if provided; otherwise, looks for handlers name else defaults to the handler's topic. This field denotes the originator of the event, ensuring traceability.
-   * - **subject**: Defaults to `incomingEvent.subject` if `Return<handler>.subject` is not specified, maintaining context. For error events, it uses the original event's subject or a default indicating the CloudEvent ID.
-   * - **datacontenttype**: Inherits from the incoming event, typically `'application/cloudevents+json; charset=UTF-8'`. This ensures consistency in event data formatting across the workflow.
-   * - **traceparent** and **tracestate**: Generated from `spanContext`, facilitating distributed tracing. This includes carrying over trace information from the incoming event or starting a new trace context, crucial for error events to trace the error source.
-   * - **to**: For successful events, it follows the order of preference: `Return<handler>.to`, `incomingEvent.redirectto`, `incomingEvent.source`, defaulting to `null` if none are provided. For error events, it directs back to the event's source to notify the producer of the error.
-   * - **redirectto**: Specified by `Return<handler>.redirectto` for redirecting the event post-processing. For error events, this field is nullified to prevent further redirection of error notifications.
-   *
    * This method ensures that any operational or processing errors are communicated back to the event source or designated error handling service, enabling robust error management and recovery strategies.
    *
    * @param event - The CloudEvent to be processed.
    * @returns A Promise resolving to an array containing either successfully processed CloudEvents or error CloudEvents, encapsulating any encountered processing errors.
    * @public
    */
-  async safeCloudevent(event: CloudEvent<Record<string, any>>): Promise<
-    {
-      success: boolean;
-      eventToEmit: CloudEvent<Record<string, any>>;
-      error?: CloudEventHandlerError;
-    }[]
-  > {
-    const start = performance.now();
-    const spanContext: SpanContext = TraceParent.parse(
-      (event.traceparent || '') as string,
-      (event.tracestate || '') as string,
-    );
-    let responses: {
-      success: boolean;
-      eventToEmit: CloudEvent<Record<string, any>>;
-      error?: CloudEventHandlerError;
-    }[] = [];
-    try {
-      await this.logger({
-        type: 'START',
-        source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
-        spanContext,
-        input: {
-          ...event.toJSON(),
-          type: event.type,
-          data: event.data as Record<string, any>,
-        },
-        startTime: start,
-      });
-      responses = (await this.cloudevent(event, spanContext)).map((item) => ({
-        success: true,
-        eventToEmit: item,
-      }));
-    } catch (e) {
-      await this.logger({
-        type: 'ERROR',
-        source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
-        spanContext,
-        error: e as Error,
-        input: {
-          ...event.toJSON(),
-          type: event.type,
-          data: event.data as Record<string, any>,
-        },
-      });
-      const executionUnits = this.params.executionUnits || 0;
-      responses.push({
-        success: false,
-        eventToEmit: new CloudEvent({
-          // Must go back to the producer incase of error
-          to: !this.params.disableRoutingMetadata
-            ? encodeURI(event.source)
-            : null,
-          redirectto: null,
-          source: encodeURI(this.params.name || this.topic),
-          type: `sys.${this.params.name || this.topic}.error`,
-          subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
-          data: {
-            errorName: (e as CloudEventHandlerError).name,
-            errorStack: (e as CloudEventHandlerError).stack,
-            errorMessage: (e as CloudEventHandlerError).message,
-            additional: (e as CloudEventHandlerError).additional,
-            event: (e as CloudEventHandlerError).event,
-            //__executionunits: executionUnits.toString(),
-          },
-          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
-          traceparent: TraceParent.create.traceparent(spanContext),
-          tracestate: spanContext.traceState || '',
-          executionunits: executionUnits.toString(),
-        }),
-        error: e as Error,
-      });
-    }
-    await Promise.all(
-      responses.map(
-        async ({ eventToEmit }) =>
-          await this.logger({
-            type: 'LOG',
-            source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
-            spanContext,
-            output: {
-              ...eventToEmit.toJSON(),
-              type: eventToEmit.type,
-              data: eventToEmit.data as Record<string, any>,
-            },
-          }),
-      ),
-    );
-    const endTime = performance.now();
-    await this.logger({
-      type: 'END',
-      source: `CloudEventHandler<${this.topic}>.safeCloudevent`,
-      spanContext,
-      startTime: start,
-      endTime,
-      duration: endTime - start,
-    });
-    return responses;
+  async safeCloudevent(event: XOrcaCloudEvent<Record<string, any>>): Promise<ISafeCloudEventResponse[]> {
+    const activeContext = getActiveContext(event.traceparent)
+    const activeSpan = this.otelTracer.startSpan(
+      `CloudEventHandler.safeCloudevent<${this.topic}>`,
+      {
+        attributes: this.getSpanAttributes(event)
+      },
+      activeContext
+    )
+
+    const result = await context.with(
+      trace.setSpan(activeContext, activeSpan),
+      async () => {
+        const carrier = parseContext(activeSpan, activeContext)
+        activeSpan.setAttribute('cloudevents.xorca.to_process.event_to', event.to || '')
+        activeSpan.setAttribute('cloudevents.xorca.to_process.event_redirectto', event.redirectto || '')
+        const start = performance.now()
+        return await this.cloudevent(event, activeSpan)
+          .then(events => {
+            activeSpan.setStatus({
+              code: SpanStatusCode.OK
+            })
+            return events.map(item => ({
+              success: true,
+              eventToEmit: item
+            }))
+          })
+          .catch((e: Error) => {
+            activeSpan.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: e.message
+            })
+            logToSpan(activeSpan, {
+              level: "CRITICAL",
+              message: e.message,
+            })
+            return [{
+              success: false,
+              eventToEmit: new XOrcaCloudEvent({
+                // Must go back to the producer incase of error
+                to: !this.params.disableRoutingMetadata
+                  ? event.source
+                  : null,
+                redirectto: null,
+                source: this.params.name || this.topic,
+                type: `sys.${this.params.name || this.topic}.error`,
+                subject: event.subject || `no-subject:cloudevent-id=${event.id}`,
+                data: {
+                  errorName: (e as CloudEventHandlerError).name,
+                  errorStack: (e as CloudEventHandlerError).stack,
+                  errorMessage: (e as CloudEventHandlerError).message,
+                  additional: (e as CloudEventHandlerError).additional,
+                  event: (e as CloudEventHandlerError).event,
+                },
+                traceparent: carrier.traceparent,
+                tracestate: carrier.tracestate,
+                executionunits: (this.params.executionUnits || 0).toString(),
+                elapsedtime: (performance.now() - start).toString()
+              }),
+              error: e as Error,
+            }]
+          })
+      }
+    )
+
+    result.forEach(({eventToEmit: item}, index) => {
+      activeSpan.setAttribute(`cloudevents.xorca.to_emit.[${index}].event_type`, item.type || '')
+      activeSpan.setAttribute(`cloudevents.xorca.to_emit.[${index}].event_executionunits`, item.executionunits || '')
+      activeSpan.setAttribute(`cloudevents.xorca.to_emit.[${index}].event_to`, item.to || '')
+      activeSpan.setAttribute(`cloudevents.xorca.to_emit.[${index}].event_redirectto`, item.redirectto || '')
+      activeSpan.setAttribute(`cloudevents.xorca.to_emit.[${index}].event_elapsedtime`, item.elapsedtime || '')
+    })
+
+    activeSpan.end()
+    return result
   }
 
   /**
@@ -517,7 +450,6 @@ export default class CloudEventHandler<
             ),
           traceparent: zod
             .string()
-            .regex(TraceParent.validationRegex)
             .optional()
             .describe(
               [
@@ -574,93 +506,6 @@ export default class CloudEventHandler<
           description || 'The event which can be accepted by this handler',
         ),
     );
-  }
-
-  /**
-   * Constructs the AsyncAPI channels and operations for this CloudEventHandler, enabling integration with AsyncAPI documentation tools.
-   * This method auto-generates the configuration necessary to document the event-driven API exposed by this handler.
-   *
-   * @param bindings - Optional. Specifies the message bindings for the AsyncAPI spec, providing additional configuration.
-   * The bindings must be object as per [Async API](https://www.asyncapi.com/docs/reference/specification/v3.0.0#messageBindingsObject)
-   * @returns An object containing the AsyncAPI channels and operations configuration for this CloudEventHandler.
-   * @public
-   */
-  getAsyncApiChannel(
-    bindings: object = {
-      statusCode: 200,
-      headers: zodToJsonSchema(
-        zod.object({
-          'content-type': zod.literal(
-            'application/cloudevents+json; charset=UTF-8',
-          ),
-        }),
-      ),
-      bindingVersion: '0.3.0',
-    },
-  ) {
-    return {
-      channels: {
-        [this.params.accepts.type]: {
-          address: this.params.accepts.type,
-          title: this.params.accepts.type,
-          description: this.params.accepts.description,
-          messages: {
-            [this.params.accepts.type]: {
-              name: this.params.accepts.type,
-              description: this.params.accepts.description,
-              contentType: 'application/cloudevents+json; charset=UTF-8',
-              payload: this.makeEventSchema(
-                this.params.accepts.type,
-                this.params.accepts.zodSchema,
-                this.params.accepts.description,
-                this.params.executionUnits?.toString(),
-              ),
-              bindings,
-            },
-          },
-        },
-        ...Object.assign(
-          {},
-          ...this.getAllEmits().map((item) => ({
-            [item.type]: {
-              address: item.type,
-              title: item.type,
-              description: item.description,
-              messages: {
-                [item.type]: {
-                  name: item.type,
-                  description: item.description,
-                  contentType: 'application/cloudevents+json; charset=UTF-8',
-                  payload: this.makeEventSchema(
-                    item.type,
-                    item.zodSchema,
-                    item.description,
-                    this.params.executionUnits?.toString(),
-                  ),
-                  bindings,
-                },
-              },
-            },
-          })),
-        ),
-      },
-      operations: Object.assign(
-        {},
-        ...this.getAllEmits().map((item) => ({
-          [item.type]: {
-            action: 'send',
-            channel: {
-              $ref: `#/channels/${this.params.accepts.type}`,
-            },
-            reply: {
-              channel: {
-                $ref: `#/channels/${item.type}`,
-              },
-            },
-          },
-        })),
-      ),
-    };
   }
 
   /**

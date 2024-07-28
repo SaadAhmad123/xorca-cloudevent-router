@@ -1,6 +1,5 @@
-import { CloudEvent } from 'cloudevents';
 import CloudEventHandler from '../CloudEventHandler';
-import { Logger } from '../CloudEventHandler/types';
+import XOrcaCloudEvent from '../XOrcaCloudEvent';
 
 /**
  * Interface for a CloudEvent Router, which routes incoming CloudEvents to the appropriate handlers.
@@ -14,7 +13,6 @@ export interface ICloudEventRouter {
   name: string;
   description?: string;
   handlers: CloudEventHandler<any, any>[];
-  logger?: Logger;
 }
 
 /**
@@ -28,7 +26,7 @@ export interface ICloudEventRouter {
  * @property {CloudEvent<Record<string, any>>} [eventToEmit] - Optional. The CloudEvent to emit as a result of processing.
  */
 export type CloudEventRouterResponse = {
-  event: CloudEvent<Record<string, any>>;
+  event: XOrcaCloudEvent<Record<string, any>>;
   success: boolean;
   errorMessage?: string;
   errorStack?: string;

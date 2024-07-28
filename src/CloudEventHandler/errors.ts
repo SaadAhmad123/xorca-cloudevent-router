@@ -1,4 +1,4 @@
-import { CloudEvent } from 'cloudevents';
+import XOrcaCloudEvent from '../XOrcaCloudEvent';
 
 /**
  * Custom error class for CloudEvent handler errors.
@@ -13,7 +13,7 @@ export class CloudEventHandlerError extends Error {
    */
   constructor(
     public message: string,
-    public event?: CloudEvent<Record<string, any>>,
+    public event?: XOrcaCloudEvent<Record<string, any>>,
     public additional?: Record<string, any>,
   ) {
     super(message);

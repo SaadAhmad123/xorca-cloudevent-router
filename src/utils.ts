@@ -159,3 +159,8 @@ export function cleanString(s: string): string {
     .map((item) => item.trim())
     .join('\n');
 }
+
+export const arrayToRecord = (arr: string[]) => Object.assign(
+  {},
+  ...arr.map(item => ({[item]: item}))
+)

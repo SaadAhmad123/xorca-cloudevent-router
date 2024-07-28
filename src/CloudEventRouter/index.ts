@@ -1,5 +1,4 @@
 import CloudEventHandler from '../CloudEventHandler';
-import { CloudEvent } from 'cloudevents';
 import { CloudEventRouterError } from './errors';
 import { matchTemplates } from '../utils';
 import {
@@ -9,6 +8,7 @@ import {
 } from './types';
 import zodToJsonSchema from 'zod-to-json-schema';
 import * as zod from 'zod';
+import XOrcaCloudEvent from '../XOrcaCloudEvent';
 
 /**
  * Represents a CloudEventRouter that routes and processes an array of CloudEvents using registered CloudEventHandlers.
@@ -38,10 +38,7 @@ export default class CloudEventRouter {
     this.handlerMap = Object.assign(
       {},
       ...this.params.handlers.map((item) => ({
-        [item.topic]:
-          params.logger && !item.getLogger()
-            ? item.setLogger(params.logger)
-            : item,
+        [item.topic]: item
       })),
     );
   }
@@ -56,7 +53,7 @@ export default class CloudEventRouter {
    * @returns A Promise resolving to an array of processed CloudEvents.
    */
   async cloudevents(
-    events: CloudEvent<Record<string, any>>[],
+    events: XOrcaCloudEvent<Record<string, any>>[],
     options?: CloudEventRouterHandlerOptions,
   ) {
     const { responseCallback, errorOnNotFound = true } = options || {};
@@ -126,48 +123,5 @@ export default class CloudEventRouter {
    */
   toDict(): ICloudEventRouter {
     return { ...this.params };
-  }
-
-  /**
-   * Create the Async API spec 3.0.0 docs
-   * for this router
-   * @param servers - The servers object as per https://www.asyncapi.com/docs/reference/specification/v3.0.0#serversObject
-   * @param bindings - The bindings object as per https://www.asyncapi.com/docs/reference/specification/v3.0.0#messageObject
-   * @returns JSON of the Async API docs
-   */
-  getAsyncApiDoc(params?: { servers?: object; bindings?: object }) {
-    return {
-      asyncapi: '3.0.0',
-      info: {
-        title: this.params.name,
-        description: this.params.description,
-        version: '1.0.0',
-      },
-      defaultContentType: 'application/json',
-      servers: params?.servers,
-      ...this.params.handlers
-        .map((item) =>
-          item.getAsyncApiChannel(
-            params?.bindings || {
-              http: {
-                statusCode: 200,
-                headers: zodToJsonSchema(
-                  zod.object({
-                    'content-type': zod.literal('application/json'),
-                  }),
-                ),
-                bindingVersion: '0.3.0',
-              },
-            },
-          ),
-        )
-        .reduce(
-          (acc, cur) => ({
-            channels: { ...acc.channels, ...cur.channels },
-            operations: { ...acc.operations, ...cur.operations },
-          }),
-          { channels: {}, operations: {} },
-        ),
-    };
   }
 }
