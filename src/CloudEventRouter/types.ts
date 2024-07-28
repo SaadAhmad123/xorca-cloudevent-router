@@ -31,7 +31,7 @@ export type CloudEventRouterResponse = {
   errorMessage?: string;
   errorStack?: string;
   errorType?: string;
-  eventToEmit?: CloudEvent<Record<string, any>>;
+  eventToEmit?: XOrcaCloudEvent<Record<string, any>>;
 };
 
 /**
