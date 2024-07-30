@@ -13,7 +13,7 @@ export class CloudEventHandlerError extends Error {
    */
   constructor(
     public message: string,
-    public event?: XOrcaCloudEvent<Record<string, any>>,
+    public event?: XOrcaCloudEvent,
     public additional?: Record<string, any>,
   ) {
     super(message);

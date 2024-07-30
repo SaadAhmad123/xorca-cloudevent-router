@@ -70,7 +70,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
       new XOrcaCloudEvent({
         subject: 'saad',
@@ -79,7 +79,7 @@ describe('CloudEventRouter spec', () => {
           content: 'content to look at',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(2);
@@ -109,7 +109,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -166,7 +166,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -207,7 +207,7 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -234,9 +234,13 @@ describe('CloudEventRouter spec', () => {
             book_id: zod.string(),
             book_content: zod.string().array(),
           }),
-          handler: async (data, openTelemetry, {isTimedOut, throwTimeoutError, throwOnTimeoutError}) => {
+          handler: async (
+            data,
+            openTelemetry,
+            { isTimedOut, throwTimeoutError, throwOnTimeoutError },
+          ) => {
             await new Promise((res) => setTimeout(res, 1000));
-            throwOnTimeoutError()
+            throwOnTimeoutError();
             return {};
           },
         }),
@@ -250,10 +254,9 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
-    console.log({resp}, null, 2)
     expect(resp.length).toBe(1);
     expect(resp[0].eventToEmit?.type).toBe('evt.books.fetch.timeout');
     expect(resp[0].eventToEmit?.data?.errorMessage).toBe(

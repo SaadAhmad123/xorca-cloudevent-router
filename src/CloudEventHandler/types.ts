@@ -1,7 +1,7 @@
 import * as zod from 'zod';
-import { XOrcaCloudEvent } from '../XOrcaCloudEvent';
 import { CloudEventHandlerError } from './errors';
-import { Context, Span, Tracer } from '@opentelemetry/api';
+import { Span, Tracer } from '@opentelemetry/api';
+import XOrcaCloudEvent from '../XOrcaCloudEvent';
 
 /**
  * Defines the output of a Cloud Event Handler function.
@@ -27,7 +27,6 @@ export type CloudEventHandlerFunctionOutput<TEmitType extends string> = {
   redirectto?: string;
   to?: string;
   executionunits?: number;
-  
 };
 
 /**
@@ -41,7 +40,7 @@ export type CloudEventHandlerFunctionOutput<TEmitType extends string> = {
  * @property {TEventData} data - The payload of the event, containing the data that the event carries. The structure is defined by the handler's expectations for the type of event it processes.
  * @property {Record<string, string>} [params] - Optional parameters extracted from the event topic, providing contextual information that can influence event handling logic.
  * @property {SpanContext} spanContext - Provides the telemetry span context for tracing the handling of this event through the system. Essential for observability and troubleshooting.
- * @property {XOrcaCloudEvent<Record<string, any>>} event - The original CloudEvent object. This includes the entire event structure as defined by the CloudEvents specification, providing access to standard event metadata and any custom extensions.
+ * @property {XOrcaCloudEvent} event - The original CloudEvent object. This includes the entire event structure as defined by the CloudEvents specification, providing access to standard event metadata and any custom extensions.
  * @property {string} source - The source of the incoming event, identifying where the event originated. This information is critical for understanding the event's context and for routing decisions.
  * @property {string} [to] - Optional. The intended target of the incoming event. Ideally, this should match the handler's topic, indicating that the event is being processed by the correct handler.
  * @property {string} [redirectto] - Optional. An indication that the event should be redirected to a different service or handler. This allows for dynamic routing of events based on processing logic or system state.
@@ -55,12 +54,12 @@ export type CloudEventHandlerFunctionInput<
 > = {
   type: TAcceptType;
   data: TEventData;
-  event: XOrcaCloudEvent<Record<string, any>>;
+  event: XOrcaCloudEvent;
   source: string;
   openTelemetry: {
-    span: Span,
-    tracer: Tracer
-  }
+    span: Span;
+    tracer: Tracer;
+  };
   isTimedOut: () => boolean;
   timeoutMs: number;
   params?: Record<string, string>;
@@ -81,7 +80,7 @@ export type CloudEventHandlerFunctionInput<
 export type CloudEventValidationSchema<TType extends string> = {
   type: TType;
   description?: string;
-  zodSchema: zod.ZodObject<any>;
+  zodSchema: zod.AnyZodObject;
 };
 
 /**
@@ -138,10 +137,9 @@ export interface ICloudEventHandler<
 
 export interface ISafeCloudEventResponse {
   success: boolean;
-  eventToEmit: XOrcaCloudEvent<Record<string, any>>;
-  error?: CloudEventHandlerError
+  eventToEmit: XOrcaCloudEvent;
+  error?: CloudEventHandlerError;
 }
-
 
 /**
  * Options for handling timeouts within a CloudEvent handler.
@@ -154,13 +152,12 @@ export interface ISafeCloudEventResponse {
  * @property {() => void} throwOnTimeoutError - A function that throws a timeout error if a timeout is detected.
  */
 export type TimeoutOptions = {
-  startMs: number
-  timeoutMs: number
-  isTimedOut: () => boolean,
-  throwTimeoutError: () => void,
-  throwOnTimeoutError: () => void,
-}
-
+  startMs: number;
+  timeoutMs: number;
+  isTimedOut: () => boolean;
+  throwTimeoutError: () => void;
+  throwOnTimeoutError: () => void;
+};
 
 /**
  * Interface for creating a simple CloudEventHandler focused on handling asynchronous commands and events.
@@ -191,10 +188,10 @@ export interface ICreateSimpleCloudEventHandler<TAcceptType extends string> {
   handler: (
     data: Record<string, any>,
     openTelemetry: {
-      span: Span,
-      tracer: Tracer,
+      span: Span;
+      tracer: Tracer;
     },
-    timeoutOptions: TimeoutOptions
+    timeoutOptions: TimeoutOptions,
   ) => Promise<{
     [key: string]: any;
     __executionunits?: number;

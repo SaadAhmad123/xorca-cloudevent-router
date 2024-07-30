@@ -99,73 +99,81 @@ export default function createSimpleHandler<TAcceptType extends string>(
       params: topicParams,
       openTelemetry,
       isTimedOut,
-      timeoutMs
+      timeoutMs,
     }) => {
-      const throwTimeoutError = () => { throw new TimeoutError(`The createSimpleHandler<${params.name || params.accepts.type}>.handler timed out after ${timeoutMs}`) }
+      const throwTimeoutError = () => {
+        throw new TimeoutError(
+          `The createSimpleHandler<${params.name || params.accepts.type}>.handler timed out after ${timeoutMs}`,
+        );
+      };
 
-      return await openTelemetry.tracer.startActiveSpan(`createSimpleHandler<${params.name || params.accepts.type}>.handler`, async (span) => {
-        let result: CloudEventHandlerFunctionOutput<
-          | `evt.${TAcceptType}.success`
-          | `evt.${TAcceptType}.error`
-          | `evt.${TAcceptType}.timeout`
-          | `sys.${TAcceptType}.error`
-        >[] = [];
-        const start = performance.now()
-        try {
-          const { __executionunits, ...handlerData } = await params.handler(
-            data,
-            {
-              span: span,
-              tracer: openTelemetry.tracer
-            },
-            {
-              startMs: start,
-              timeoutMs,
-              isTimedOut,
-              throwTimeoutError,
-              throwOnTimeoutError: () => {
-                if (!isTimedOut()) return
-                throwTimeoutError()
+      return await openTelemetry.tracer.startActiveSpan(
+        `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
+        async (span) => {
+          let result: CloudEventHandlerFunctionOutput<
+            | `evt.${TAcceptType}.success`
+            | `evt.${TAcceptType}.error`
+            | `evt.${TAcceptType}.timeout`
+            | `sys.${TAcceptType}.error`
+          >[] = [];
+          const start = performance.now();
+          try {
+            const { __executionunits, ...handlerData } = await params.handler(
+              data,
+              {
+                span: span,
+                tracer: openTelemetry.tracer,
               },
+              {
+                startMs: start,
+                timeoutMs,
+                isTimedOut,
+                throwTimeoutError,
+                throwOnTimeoutError: () => {
+                  if (!isTimedOut()) return;
+                  throwTimeoutError();
+                },
+              },
+            );
+            result.push({
+              type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
+              data: handlerData,
+              executionunits: __executionunits,
+            });
+            span.setStatus({
+              code: SpanStatusCode.OK,
+            });
+          } catch (err) {
+            const error = err as Error;
+            span.setStatus({
+              code: SpanStatusCode.ERROR,
+              message: error.message,
+            });
+            logToSpan(span, {
+              level: 'ERROR',
+              message: error.message,
+            });
+            let eventType: string =
+              `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`;
+            if (error.name === 'TimeoutError') {
+              eventType =
+                `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`;
             }
-          );
-          result.push({
-            type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
-            data: handlerData,
-            executionunits: __executionunits,
-          });
-          span.setStatus({
-            code: SpanStatusCode.OK
-          })
-        }
-        catch (err) {
-          const error = err as Error;
-          span.setStatus({
-            code: SpanStatusCode.ERROR,
-            message: error.message
-          })
-          logToSpan(span, {
-            level: "ERROR",
-            message: error.message,
-          })
-          let eventType: string = `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`
-          if (error.name === "TimeoutError") {
-            eventType = `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`
+            result.push({
+              type: eventType as any,
+              data: {
+                timeout: timeoutMs,
+                errorName: error.name,
+                errorMessage: error.message,
+                errorStack: error.stack,
+                eventData: { type, data },
+              },
+            });
           }
-          result.push({
-            type: eventType as any,
-            data: {
-              timeout: timeoutMs,
-              errorName: error.name,
-              errorMessage: error.message,
-              errorStack: error.stack,
-              eventData: { type, data },
-            },
-          });
-        }
-        span.end()
-        return result
-      })
+          span.end();
+          return result;
+        },
+      );
     },
   });
 }

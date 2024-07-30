@@ -1,21 +1,18 @@
 import * as zod from 'zod';
 import CloudEventHandler from '../src/CloudEventHandler';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { ConsoleSpanExporter  } from '@opentelemetry/sdk-trace-node';
+import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { Resource } from '@opentelemetry/resources';
 import { SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import XOrcaCloudEvent from '../src/XOrcaCloudEvent';
 
-
 describe('CloudEventHandler Spec', () => {
-
   const sdk = new NodeSDK({
     resource: new Resource({
-      [SEMRESATTRS_SERVICE_NAME]: 'hello-cli'
+      [SEMRESATTRS_SERVICE_NAME]: 'hello-cli',
     }),
     traceExporter: new ConsoleSpanExporter(),
-  })
-
+  });
 
   const params = {
     executionUnits: 1.5,
@@ -61,13 +58,12 @@ describe('CloudEventHandler Spec', () => {
   };
 
   beforeAll(() => {
-    sdk.start()
-  })
+    sdk.start();
+  });
 
   afterAll(() => {
-    //console.log("Hello endssssss")
-    sdk.shutdown().then(() => console.log("Hello endsssssseddddd"))
-  })
+    sdk.shutdown();
+  });
 
   it('Should throw error if the invalid event type is provided', async () => {
     const handler = new CloudEventHandler(params);
@@ -85,10 +81,12 @@ describe('CloudEventHandler Spec', () => {
     );
 
     let resp = (
-      await handler.safeCloudevent(
+      await handler.cloudevent(
         new XOrcaCloudEvent({
           source: '/test/saad',
           type: 'evt.handler',
+          subject: "something",
+          data: {}
         }),
       )
     )[0];
@@ -98,13 +96,15 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.executionunits).toBe((1.5).toString());
 
     resp = (
-      await handler.safeCloudevent(
+      await handler.cloudevent(
         new XOrcaCloudEvent({
           source: '/test/saad',
           redirectto: '/test/saad/1',
           type: 'evt.handler',
           subject: 'some',
-          traceparent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+          data: {},
+          traceparent:
+            '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01',
         }),
       )
     )[0];
@@ -113,13 +113,13 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.to).toBe('/test/saad');
 
     resp = (
-      await handler.safeCloudevent(
+      await handler.cloudevent(
         new XOrcaCloudEvent({
           source: '/test/saad',
           type: 'evt.handler',
           subject: 'some',
           data: {},
-          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
         }),
       )
     )[0];
@@ -130,13 +130,13 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
-      await handler.safeCloudevent(
+      await handler.cloudevent(
         new XOrcaCloudEvent({
           source: '/test/saad',
           type: 'cmd.weather.fetch',
           subject: 'some',
           data: {},
-          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
         }),
       )
     )[0];
@@ -148,7 +148,7 @@ describe('CloudEventHandler Spec', () => {
     expect(resp.eventToEmit.type).toBe('sys.{{resource}}.fetch.error');
 
     resp = (
-      await handler.safeCloudevent(
+      await handler.cloudevent(
         new XOrcaCloudEvent({
           source: '/test/saad',
           type: 'cmd.weather.fetch',
@@ -156,7 +156,7 @@ describe('CloudEventHandler Spec', () => {
           data: {
             date: new Date(),
           },
-          datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+          datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
         }),
       )
     )[0];
@@ -175,7 +175,7 @@ describe('CloudEventHandler Spec', () => {
       data: {
         date: new Date(),
       },
-      datacontenttype: 'application/cloudevents+json; charset=UTF-8',
+      datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       redirectto: '/test/saad/1',
     });
 
@@ -188,7 +188,7 @@ describe('CloudEventHandler Spec', () => {
         },
       ],
     });
-    let resp = (await handler.safeCloudevent(evt))[0];
+    let resp = (await handler.cloudevent(evt))[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       "[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=evt.weather.fetch does not match any of the provided in 'emits'",
@@ -206,7 +206,7 @@ describe('CloudEventHandler Spec', () => {
         },
       ],
     });
-    resp = (await handler.safeCloudevent(evt))[0];
+    resp = (await handler.cloudevent(evt))[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=evt.weather.fetch.success expected data shape',
@@ -230,7 +230,7 @@ describe('CloudEventHandler Spec', () => {
         },
       ],
     });
-    resp = (await handler.safeCloudevent(evt))[0];
+    resp = (await handler.cloudevent(evt))[0];
     expect(resp.success).toBe(true);
     expect(resp.eventToEmit.type).toBe('evt.weather.fetch.success');
     expect(resp.eventToEmit.data?.status).toBe(200);
@@ -245,7 +245,7 @@ describe('CloudEventHandler Spec', () => {
         throw new Error('some error');
       },
     });
-    resp = (await handler.safeCloudevent(evt))[0];
+    resp = (await handler.cloudevent(evt))[0];
     expect(resp.success).toBe(false);
     expect(resp.eventToEmit?.data?.errorMessage).toBe(
       '[CloudEventHandler][cloudevent][handler] Handler errored (message=some error)',
