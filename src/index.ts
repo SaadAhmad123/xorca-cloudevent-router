@@ -8,12 +8,15 @@ import {
 } from './CloudEventHandler/types';
 
 import createSimpleHandler from './CloudEventHandler/createSimpleHandler';
-import createHttpHandler from './CloudEventHandler/createHttpHandler';
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
+import XOrcaCloudEvent from './XOrcaCloudEvent';
+import { getActiveContext, parseContextFromSpan, logToSpan } from './Telemetry';
+import { TelemetryContext, TelemetryLogLevels } from './Telemetry/types';
 
 export {
+  XOrcaCloudEvent,
   CloudEventHandler,
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,
@@ -21,8 +24,12 @@ export {
   CloudEventHandlerError,
   CloudEventRouterError,
   createSimpleHandler,
-  createHttpHandler,
   CloudEventValidationSchema,
   ICloudEventHandler,
-  ICloudEventRouter
+  ICloudEventRouter,
+  getActiveContext,
+  parseContextFromSpan as parseContext,
+  logToSpan,
+  TelemetryContext,
+  TelemetryLogLevels,
 };

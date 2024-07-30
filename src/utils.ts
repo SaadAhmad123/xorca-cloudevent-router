@@ -160,7 +160,5 @@ export function cleanString(s: string): string {
     .join('\n');
 }
 
-export const arrayToRecord = (arr: string[]) => Object.assign(
-  {},
-  ...arr.map(item => ({[item]: item}))
-)
+export const arrayToRecord = (arr: string[]) =>
+  Object.assign({}, ...arr.map((item) => ({ [item]: item })));

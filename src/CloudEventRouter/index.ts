@@ -6,8 +6,6 @@ import {
   CloudEventRouterResponse,
   ICloudEventRouter,
 } from './types';
-import zodToJsonSchema from 'zod-to-json-schema';
-import * as zod from 'zod';
 import XOrcaCloudEvent from '../XOrcaCloudEvent';
 
 /**
@@ -38,7 +36,7 @@ export default class CloudEventRouter {
     this.handlerMap = Object.assign(
       {},
       ...this.params.handlers.map((item) => ({
-        [item.topic]: item
+        [item.topic]: item,
       })),
     );
   }
@@ -53,7 +51,7 @@ export default class CloudEventRouter {
    * @returns A Promise resolving to an array of processed CloudEvents.
    */
   async cloudevents(
-    events: XOrcaCloudEvent<Record<string, any>>[],
+    events: XOrcaCloudEvent[],
     options?: CloudEventRouterHandlerOptions,
   ) {
     const { responseCallback, errorOnNotFound = true } = options || {};
@@ -73,7 +71,7 @@ export default class CloudEventRouter {
             const responses =
               await this.handlerMap[
                 matchTemplateResp.matchedTemplate
-              ].safeCloudevent(item);
+              ].cloudevent(item);
             finalResponses = [
               ...finalResponses,
               ...responses.map((resp) => ({
