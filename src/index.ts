@@ -12,7 +12,7 @@ import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
 import XOrcaCloudEvent from './XOrcaCloudEvent';
-import { getActiveContext, parseContextFromSpan, logToSpan } from './Telemetry';
+import { getActiveContext, parseContext, logToSpan } from './Telemetry'
 import { TelemetryContext, TelemetryLogLevels } from './Telemetry/types';
 
 export {
@@ -28,8 +28,8 @@ export {
   ICloudEventHandler,
   ICloudEventRouter,
   getActiveContext,
-  parseContextFromSpan as parseContext,
+  parseContext, 
   logToSpan,
   TelemetryContext,
-  TelemetryLogLevels,
+  TelemetryLogLevels
 };

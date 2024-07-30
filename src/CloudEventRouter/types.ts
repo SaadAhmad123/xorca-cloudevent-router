@@ -18,20 +18,20 @@ export interface ICloudEventRouter {
 /**
  * Type defining the response structure for a CloudEvent Router.
  *
- * @property {CloudEvent<Record<string, any>>} event - The CloudEvent that was processed.
+ * @property {XOrcaCloudEvent} event - The CloudEvent that was processed.
  * @property {boolean} success - Indicates whether the event processing was successful.
  * @property {string} [errorMessage] - Optional. An error message if the event processing failed.
  * @property {string} [errorStack] - Optional. The stack trace of the error if the event processing failed.
  * @property {string} [errorType] - Optional. The type of error that occurred during event processing.
- * @property {CloudEvent<Record<string, any>>} [eventToEmit] - Optional. The CloudEvent to emit as a result of processing.
+ * @property {XOrcaCloudEvent} [eventToEmit] - Optional. The CloudEvent to emit as a result of processing.
  */
 export type CloudEventRouterResponse = {
-  event: XOrcaCloudEvent<Record<string, any>>;
+  event: XOrcaCloudEvent;
   success: boolean;
   errorMessage?: string;
   errorStack?: string;
   errorType?: string;
-  eventToEmit?: XOrcaCloudEvent<Record<string, any>>;
+  eventToEmit?: XOrcaCloudEvent;
 };
 
 /**
