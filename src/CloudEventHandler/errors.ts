@@ -1,4 +1,4 @@
-import XOrcaCloudEvent from '../XOrcaCloudEvent';
+import { XOrcaCloudEvent } from "xorca-cloudevent";
 
 /**
  * Custom error class for CloudEvent handler errors.

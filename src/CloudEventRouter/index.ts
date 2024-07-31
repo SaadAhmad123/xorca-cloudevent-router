@@ -6,7 +6,7 @@ import {
   CloudEventRouterResponse,
   ICloudEventRouter,
 } from './types';
-import XOrcaCloudEvent from '../XOrcaCloudEvent';
+import { XOrcaCloudEvent } from 'xorca-cloudevent';
 
 /**
  * Represents a CloudEventRouter that routes and processes an array of CloudEvents using registered CloudEventHandlers.

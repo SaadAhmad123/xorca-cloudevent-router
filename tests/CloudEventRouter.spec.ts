@@ -2,7 +2,7 @@ import * as zod from 'zod';
 import CloudEventHandler from '../src/CloudEventHandler';
 import CloudEventRouter from '../src/CloudEventRouter';
 import createSimpleHandler from '../src/CloudEventHandler/createSimpleHandler';
-import XOrcaCloudEvent from '../src/XOrcaCloudEvent';
+import { XOrcaCloudEvent } from 'xorca-cloudevent';
 
 const bookFetchHandler = createSimpleHandler({
   name: '{{resource}}.fetch',

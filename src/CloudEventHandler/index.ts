@@ -1,5 +1,4 @@
 import * as zod from 'zod';
-import XOrcaCloudEvent from '../XOrcaCloudEvent';
 import {
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,
@@ -18,8 +17,8 @@ import {
 } from '@opentelemetry/api';
 import { getActiveContext, logToSpan, parseContext } from '../Telemetry';
 import { TelemetryContext } from '../Telemetry/types';
-import XOrcaCloudEventSchemaGenerator from '../XOrcaCloudEvent/schema';
 import { v4 as uuidv4 } from 'uuid'
+import { XOrcaCloudEvent, XOrcaCloudEventSchemaGenerator } from 'xorca-cloudevent';
 
 /**
  * Manages CloudEvent handlers with type validation, distributed tracing, and error handling.
@@ -279,15 +278,12 @@ export default class CloudEventHandler<
     const activeSpan = this.otelTracer.startSpan(
       `CloudEventHandler.cloudevent<${event.type}>`,
       {
-        attributes: {
-          'xorca.to_process.event_id': event.id || '',
-          'xorca.to_process.event_source': event.source || '',
-          'xorca.to_process.event_spec_version': event.specversion || '',
-          'xorca.to_process.event_subject': event.subject || '',
-          'xorca.to_process.event_type': event.type || '',
-          'xorca.to_process.event_redirectto': event.redirectto || '',
-          'xorca.to_process.event_to': event.to || '',
-        },
+        attributes: Object.assign(
+          {},
+          ...Object
+            .entries(event.openTelemetryAttributes())
+            .map(([key, value]) => ({[`to_process.${key}`]: value}))
+        ),
       },
       activeContext,
     );
@@ -296,14 +292,6 @@ export default class CloudEventHandler<
       trace.setSpan(activeContext, activeSpan),
       async () => {
         const telemetryContext = parseContext(activeSpan, activeContext);
-        activeSpan.setAttribute(
-          'xorca.to_process.event_to',
-          event.to || '',
-        );
-        activeSpan.setAttribute(
-          'xorca.to_process.event_redirectto',
-          event.redirectto || '',
-        );
         const start = performance.now();
         return await this.processCloudevent(event, activeSpan)
           .then((events) => {
@@ -355,27 +343,16 @@ export default class CloudEventHandler<
       },
     );
 
-    result.forEach(({ eventToEmit: item }, index) => {
-      activeSpan.setAttribute(
-        `xorca.to_emit.[${index}].event_type`,
-        item.type || '',
-      );
-      activeSpan.setAttribute(
-        `xorca.to_emit.[${index}].event_executionunits`,
-        item.executionunits || '',
-      );
-      activeSpan.setAttribute(
-        `xorca.to_emit.[${index}].event_to`,
-        item.to || '',
-      );
-      activeSpan.setAttribute(
-        `xorca.to_emit.[${index}].event_redirectto`,
-        item.redirectto || '',
-      );
-      activeSpan.setAttribute(
-        `xorca.to_emit.[${index}].event_elapsedtime`,
-        item.elapsedtime || '',
-      );
+    result.forEach(({ eventToEmit }, index) => {
+      Object
+        .entries(eventToEmit)
+        .forEach(
+          ([key, value]) => 
+            activeSpan.setAttribute(
+              `to_emit.[${index}].${key}`,
+              value
+            )
+        )
     });
 
     activeSpan.end();

@@ -11,12 +11,10 @@ import createSimpleHandler from './CloudEventHandler/createSimpleHandler';
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
-import XOrcaCloudEvent from './XOrcaCloudEvent';
 import { getActiveContext, parseContext, logToSpan } from './Telemetry'
 import { TelemetryContext, TelemetryLogLevels } from './Telemetry/types';
 
 export {
-  XOrcaCloudEvent,
   CloudEventHandler,
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,

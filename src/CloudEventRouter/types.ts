@@ -1,5 +1,5 @@
 import CloudEventHandler from '../CloudEventHandler';
-import XOrcaCloudEvent from '../XOrcaCloudEvent';
+import { XOrcaCloudEvent } from 'xorca-cloudevent';
 
 /**
  * Interface for a CloudEvent Router, which routes incoming CloudEvents to the appropriate handlers.

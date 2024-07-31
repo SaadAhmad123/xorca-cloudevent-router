@@ -1,7 +1,7 @@
 import * as zod from 'zod';
 import { CloudEventHandlerError } from './errors';
 import { Span, Tracer } from '@opentelemetry/api';
-import XOrcaCloudEvent from '../XOrcaCloudEvent';
+import { XOrcaCloudEvent } from 'xorca-cloudevent';
 
 /**
  * Defines the output of a Cloud Event Handler function.

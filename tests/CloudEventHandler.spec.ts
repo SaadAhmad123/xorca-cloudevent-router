@@ -4,7 +4,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { Resource } from '@opentelemetry/resources';
 import { SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
-import XOrcaCloudEvent from '../src/XOrcaCloudEvent';
+import { XOrcaCloudEvent } from 'xorca-cloudevent';
 
 describe('CloudEventHandler Spec', () => {
   const sdk = new NodeSDK({
