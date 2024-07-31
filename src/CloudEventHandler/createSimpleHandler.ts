@@ -5,8 +5,9 @@ import {
   ICreateSimpleCloudEventHandler,
 } from './types';
 import { formatTemplate } from '../utils';
-import { logToSpan } from '../Telemetry';
+import { getActiveContext, logToSpan } from '../Telemetry';
 import { SpanStatusCode } from '@opentelemetry/api';
+import { context, trace } from '@opentelemetry/api';
 
 class TimeoutError extends Error {
   constructor(message: string) {
@@ -107,73 +108,83 @@ export default function createSimpleHandler<TAcceptType extends string>(
         );
       };
 
-      return await openTelemetry.tracer.startActiveSpan(
-        `createSimpleHandler<${params.name || params.accepts.type}>.handler`,
-        async (span) => {
-          let result: CloudEventHandlerFunctionOutput<
-            | `evt.${TAcceptType}.success`
-            | `evt.${TAcceptType}.error`
-            | `evt.${TAcceptType}.timeout`
-            | `sys.${TAcceptType}.error`
-          >[] = [];
-          const start = performance.now();
-          try {
-            const { __executionunits, ...handlerData } = await params.handler(
-              data,
-              {
-                span: span,
-                tracer: openTelemetry.tracer,
-              },
-              {
-                startMs: start,
-                timeoutMs,
-                isTimedOut,
-                throwTimeoutError,
-                throwOnTimeoutError: () => {
-                  if (!isTimedOut()) return;
-                  throwTimeoutError();
-                },
-              },
-            );
-            result.push({
-              type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
-              data: handlerData,
-              executionunits: __executionunits,
-            });
-            span.setStatus({
-              code: SpanStatusCode.OK,
-            });
-          } catch (err) {
-            const error = err as Error;
-            span.setStatus({
-              code: SpanStatusCode.ERROR,
-              message: error.message,
-            });
-            logToSpan(span, {
-              level: 'ERROR',
-              message: error.message,
-            });
-            let eventType: string =
-              `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`;
-            if (error.name === 'TimeoutError') {
-              eventType =
-                `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`;
-            }
-            result.push({
-              type: eventType as any,
-              data: {
-                timeout: timeoutMs,
-                errorName: error.name,
-                errorMessage: error.message,
-                errorStack: error.stack,
-                eventData: { type, data },
-              },
-            });
-          }
-          span.end();
-          return result;
-        },
+      const activeContext = getActiveContext();      
+      const activeSpan = openTelemetry.tracer.startSpan(
+        `createSimpleHandler<${params.accepts.type}>.handler`,
+        undefined,
+        activeContext,
       );
+
+      const result = await context.with(
+        trace.setSpan(activeContext, activeSpan),
+        async () => {
+          {
+            let result: CloudEventHandlerFunctionOutput<
+              | `evt.${TAcceptType}.success`
+              | `evt.${TAcceptType}.error`
+              | `evt.${TAcceptType}.timeout`
+              | `sys.${TAcceptType}.error`
+            >[] = [];
+            const start = performance.now();
+            try {
+              const { __executionunits, ...handlerData } = await params.handler(
+                data,
+                {
+                  span: activeSpan,
+                  tracer: openTelemetry.tracer,
+                },
+                {
+                  startMs: start,
+                  timeoutMs,
+                  isTimedOut,
+                  throwTimeoutError,
+                  throwOnTimeoutError: () => {
+                    if (!isTimedOut()) return;
+                    throwTimeoutError();
+                  },
+                },
+              );
+              result.push({
+                type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
+                data: handlerData,
+                executionunits: __executionunits,
+              });
+              activeSpan.setStatus({
+                code: SpanStatusCode.OK,
+              });
+            } catch (err) {
+              const error = err as Error;
+              activeSpan.setStatus({
+                code: SpanStatusCode.ERROR,
+                message: error.message,
+              });
+              logToSpan(activeSpan, {
+                level: 'ERROR',
+                message: error.message,
+              });
+              let eventType: string =
+                `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`;
+              if (error.name === 'TimeoutError') {
+                eventType =
+                  `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`;
+              }
+              result.push({
+                type: eventType as any,
+                data: {
+                  timeout: timeoutMs,
+                  errorName: error.name,
+                  errorMessage: error.message,
+                  errorStack: error.stack,
+                  eventData: { type, data },
+                },
+              });
+            }
+            return result;
+          }
+        }
+      )
+      activeSpan.end();
+      return result
     },
   });
 }

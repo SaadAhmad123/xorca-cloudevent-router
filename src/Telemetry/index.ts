@@ -7,7 +7,7 @@ import { TelemetryContext, TelemetryLogLevels } from './types';
  * @returns The active context.
  */
 export const getActiveContext = (
-  traceheader: string | null | undefined,
+  traceheader?: string | null,
 ): Context => {
   if (traceheader) {
     return propagation.extract(context.active(), { traceparent: traceheader });
