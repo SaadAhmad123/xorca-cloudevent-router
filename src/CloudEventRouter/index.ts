@@ -118,7 +118,7 @@ export default class CloudEventRouter {
     return {
       name: this.params.name,
       description: this.params.description,
-      handlers: this.params.handlers.map((item) => item.getInterface()),
+      handlers: this.params.handlers.map((item) => item.interface()),
     };
   }
 

@@ -1,3 +1,4 @@
+import { XOrcaBaseContract } from 'xorca-contract';
 import CloudEventHandler from '../CloudEventHandler';
 import { XOrcaCloudEvent } from 'xorca-cloudevent';
 
@@ -6,13 +7,13 @@ import { XOrcaCloudEvent } from 'xorca-cloudevent';
  *
  * @property {string} name - The name of the CloudEvent Router.
  * @property {string} [description] - Optional. A description of the CloudEvent Router.
- * @property {CloudEventHandler<any, any>[]} handlers - An array of CloudEvent handlers that the router will use to process events.
+ * @property {CloudEventHandler<any} handlers - An array of CloudEvent handlers that the router will use to process events.
  * @property {Logger} [logger] - Optional. A logger function for logging events and errors.
  */
 export interface ICloudEventRouter {
   name: string;
   description?: string;
-  handlers: CloudEventHandler<any, any>[];
+  handlers: CloudEventHandler<any>[];
 }
 
 /**
