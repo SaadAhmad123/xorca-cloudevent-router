@@ -9,6 +9,13 @@ import { SpanStatusCode } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import { XOrcaSimpleContract } from 'xorca-contract';
 
+/**
+ * Creates a simple CloudEventHandler for handling cloud events.
+ * 
+ * @template TContract - The type of the XOrcaSimpleContract.
+ * @param {ICreateSimpleCloudEventHandler<TContract>} params - The parameters for creating the handler.
+ * @returns {CloudEventHandler} A new CloudEventHandler instance.
+ */
 export default function createSimpleHandler<
   TContract extends XOrcaSimpleContract<any, any, any>
 >(

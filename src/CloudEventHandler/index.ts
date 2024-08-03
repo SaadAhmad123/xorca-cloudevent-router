@@ -3,7 +3,7 @@ import {
   CloudEventHandlerFunctionOutput,
   HandlerOpenTelemetryContext,
   ICloudEventHandler,
-  ISafeCloudEventResponse,
+  SafeCloudEventResponse,
 } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
@@ -206,10 +206,16 @@ export default class CloudEventHandler<
     );
   }
 
+  /**
+   * Handles the CloudEvent.
+   * @param {XOrcaCloudEvent} event - The CloudEvent to handle.
+   * @param {HandlerOpenTelemetryContext} [openTelemetry] - Optional OpenTelemetry context.
+   * @returns {Promise<SafeCloudEventResponse[]>} The handling results.
+   */
   public async cloudevent(
     event: XOrcaCloudEvent,
     openTelemetry?: HandlerOpenTelemetryContext,
-  ): Promise<ISafeCloudEventResponse[]> {
+  ): Promise<SafeCloudEventResponse[]> {
     const activeContext = getActiveContext(
       openTelemetry?.context?.traceparent || event.traceparent || null,
     );
