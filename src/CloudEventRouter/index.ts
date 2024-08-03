@@ -7,6 +7,8 @@ import {
   ICloudEventRouter,
 } from './types';
 import { XOrcaCloudEvent } from 'xorca-cloudevent';
+import { XOrcaBaseContract } from 'xorca-contract';
+import * as zod from 'zod';
 
 /**
  * Represents a CloudEventRouter that routes and processes an array of CloudEvents using registered CloudEventHandlers.
@@ -17,7 +19,12 @@ import { XOrcaCloudEvent } from 'xorca-cloudevent';
  * });
  */
 export default class CloudEventRouter {
-  protected handlerMap: Record<string, CloudEventHandler<string, string>> = {};
+  protected handlerMap: Record<
+    string,
+    CloudEventHandler<
+      XOrcaBaseContract<string, zod.ZodTypeAny, Record<string, zod.ZodTypeAny>>
+    >
+  > = {};
 
   /**
    * Creates an instance of CloudEventRouter.

@@ -6,6 +6,7 @@ import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
 import { Resource } from '@opentelemetry/resources';
 import { SEMRESATTRS_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { XOrcaCloudEvent } from 'xorca-cloudevent';
+import { XOrcaSimpleContract } from 'xorca-contract';
 
 describe('createSimpleHandler', () => {
   const sdk = new NodeSDK({
@@ -25,12 +26,11 @@ describe('createSimpleHandler', () => {
 
   it('should handle successful execution', async () => {
     const handler = createSimpleHandler({
-      name: 'TestCommand',
-      accepts: {
+      contract: new XOrcaSimpleContract({
         type: 'evt.handler',
-        zodSchema: zod.object({ input: zod.string() }),
-      },
-      emits: zod.object({ output: zod.string() }),
+        schema: zod.object({ input: zod.string() }),
+        emits: zod.object({ output: zod.string() }),
+      }),
       handler: async (data) => ({ output: `Processed: ${data.input}` }),
     });
 
@@ -49,12 +49,11 @@ describe('createSimpleHandler', () => {
 
   it('should handle errors', async () => {
     const handler = createSimpleHandler({
-      name: 'TestCommand',
-      accepts: {
+      contract: new XOrcaSimpleContract({
         type: 'test',
-        zodSchema: zod.object({ input: zod.string() }),
-      },
-      emits: zod.object({ output: zod.string() }),
+        schema: zod.object({ input: zod.string() }),
+        emits: zod.object({ output: zod.string() }),
+      }),
       handler: async () => {
         throw new Error('Test error');
       },

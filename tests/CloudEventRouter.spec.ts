@@ -3,18 +3,18 @@ import CloudEventHandler from '../src/CloudEventHandler';
 import CloudEventRouter from '../src/CloudEventRouter';
 import createSimpleHandler from '../src/CloudEventHandler/createSimpleHandler';
 import { XOrcaCloudEvent } from 'xorca-cloudevent';
+import { XOrcaBaseContract, XOrcaSimpleContract } from 'xorca-contract';
 
 const bookFetchHandler = createSimpleHandler({
-  name: '{{resource}}.fetch',
-  accepts: {
+  contract: new XOrcaSimpleContract({
     type: '{{resource}}.fetch',
-    zodSchema: zod.object({
+    schema: zod.object({
       book_id: zod.string(),
     }),
-  },
-  emits: zod.object({
-    book_id: zod.string(),
-    book_content: zod.string().array(),
+    emits: zod.object({
+      book_id: zod.string(),
+      book_content: zod.string().array(),
+    }),
   }),
   handler: async (data) => ({
     book_id: data.book_id,
@@ -23,27 +23,22 @@ const bookFetchHandler = createSimpleHandler({
 });
 
 const summaryHandler = new CloudEventHandler({
-  name: 'gpt.summary',
-  accepts: {
-    type: 'cmd.gpt.summary',
-    zodSchema: zod.object({
-      content: zod.string(),
-    }),
-  },
-  emits: [
-    {
-      type: 'evt.gpt.summary.success',
-      zodSchema: zod.object({
+  contract: new XOrcaBaseContract({
+    accepts: {
+      type: 'cmd.gpt.summary',
+      schema: zod.object({
+        content: zod.string(),
+      })
+    },
+    emits: {
+      'evt.gpt.summary.success': zod.object({
         summary: zod.string(),
       }),
-    },
-    {
-      type: 'evt.gpt.summary.error',
-      zodSchema: zod.object({
+      'evt.gpt.summary.error': zod.object({
         error: zod.string(),
-      }),
-    },
-  ],
+      }), 
+    }
+  }),
   handler: async ({ data }) => [
     {
       type: 'evt.gpt.summary.success',
@@ -149,10 +144,10 @@ describe('CloudEventRouter spec', () => {
           ...bookFetchHandler.toDict(),
           handler: async ({ data }) => [
             {
-              type: 'evt.books.fetch.success',
+              type: 'evt.books.fetch.success' as any,
               data: {
                 something: 'wrong',
-              },
+              } as any,
             },
           ],
         }),
@@ -182,16 +177,15 @@ describe('CloudEventRouter spec', () => {
       name: 'SummaryRouter',
       handlers: [
         createSimpleHandler({
-          name: 'books.fetch',
-          accepts: {
+          contract: new XOrcaSimpleContract({
             type: 'books.fetch',
-            zodSchema: zod.object({
+            schema: zod.object({
               book_id: zod.string(),
             }),
-          },
-          emits: zod.object({
-            book_id: zod.string(),
-            book_content: zod.string().array(),
+            emits: zod.object({
+              book_id: zod.string(),
+              book_content: zod.string().array(),
+            }),
           }),
           handler: async (data) => {
             throw new Error('Some error went wrong');
@@ -214,53 +208,6 @@ describe('CloudEventRouter spec', () => {
     expect(resp[0].eventToEmit?.type).toBe('evt.books.fetch.error');
     expect(resp[0].eventToEmit?.data?.errorMessage).toBe(
       'Some error went wrong',
-    );
-  });
-
-  it('should return resp error on timout in handler', async () => {
-    const router = new CloudEventRouter({
-      name: 'SummaryRouter',
-      handlers: [
-        createSimpleHandler({
-          timeoutMs: 100,
-          name: 'books.fetch',
-          accepts: {
-            type: 'books.fetch',
-            zodSchema: zod.object({
-              book_id: zod.string(),
-            }),
-          },
-          emits: zod.object({
-            book_id: zod.string(),
-            book_content: zod.string().array(),
-          }),
-          handler: async (
-            data,
-            openTelemetry,
-            { isTimedOut, throwTimeoutError, throwOnTimeoutError },
-          ) => {
-            await new Promise((res) => setTimeout(res, 1000));
-            throwOnTimeoutError();
-            return {};
-          },
-        }),
-      ],
-    });
-    const resp = await router.cloudevents([
-      new XOrcaCloudEvent({
-        subject: 'saad',
-        type: 'cmd.books.fetch',
-        data: {
-          book_id: 'saad',
-        },
-        source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
-      }),
-    ]);
-    expect(resp.length).toBe(1);
-    expect(resp[0].eventToEmit?.type).toBe('evt.books.fetch.timeout');
-    expect(resp[0].eventToEmit?.data?.errorMessage).toBe(
-      'The createSimpleHandler<books.fetch>.handler timed out after 100',
     );
   });
 });

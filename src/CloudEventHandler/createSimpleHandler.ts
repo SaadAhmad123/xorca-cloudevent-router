@@ -1,116 +1,30 @@
-import * as zod from 'zod';
 import CloudEventHandler from '.';
 import {
   CloudEventHandlerFunctionOutput,
   ICreateSimpleCloudEventHandler,
 } from './types';
 import { formatTemplate } from '../utils';
-import { getActiveContext, logToSpan } from '../Telemetry';
+import { getActiveContext, logToSpan, parseContext } from '../Telemetry';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
+import { XOrcaSimpleContract } from 'xorca-contract';
 
-class TimeoutError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'TimeoutError';
-  }
-}
-
-/**
- * Creates a simple CloudEventHandler for asynchronous commands and their corresponding events.
- * @param params - Parameters for configuring the CloudEventHandler.
- * @returns A new CloudEventHandler instance.
- * @example
- * // Example usage of createSimpleHandler
- * const mySimpleHandler = createSimpleHandler({
- *   name: 'MyCommand',
- *   description: 'Handles a simple command and its events',
- *   accepts: zod.object({  ...  }), // Zod schema for command data
- *   emits: zod.object({  ...  }),   // Zod schema for emitted event data
- *   handler: async (data) => {
- *     // Process the command data and return the result
- *     return { ... };
- *   },
- *   timeoutMs: 5000, // Optional timeout in milliseconds
- * });
- *
- * If it is required to dynamically assung
- */
-export default function createSimpleHandler<TAcceptType extends string>(
-  params: ICreateSimpleCloudEventHandler<TAcceptType>,
+export default function createSimpleHandler<
+  TContract extends XOrcaSimpleContract<any, any, any>
+>(
+  params: ICreateSimpleCloudEventHandler<TContract>,
 ) {
-  return new CloudEventHandler<
-    `cmd.${TAcceptType}`,
-    | `evt.${TAcceptType}.success`
-    | `evt.${TAcceptType}.error`
-    | `evt.${TAcceptType}.timeout`
-    | `sys.${TAcceptType}.error`
-  >({
-    timeoutMs: params.timeoutMs,
+  const contractParams = params.contract.parameters
+
+  return new CloudEventHandler({
     disableRoutingMetadata: params.disableRoutingMetadata,
     executionUnits: params.executionUnits,
-    name: params.name || `cmd.${params.accepts.type}`,
     description: params.description,
-    accepts: {
-      type: `cmd.${params.accepts.type}`,
-      description: params.accepts.description,
-      zodSchema: params.accepts.zodSchema,
-    },
-    emits: [
-      {
-        type: `evt.${params.accepts.type}.success`,
-        zodSchema: params.emits,
-      },
-      {
-        type: `evt.${params.accepts.type}.error`,
-        zodSchema: zod.object({
-          errorName: zod.string().optional().describe('The name of the error'),
-          errorMessage: zod
-            .string()
-            .optional()
-            .describe('The message of the error'),
-          errorStack: zod
-            .string()
-            .optional()
-            .describe('The stack of the error'),
-        }),
-      },
-      {
-        type: `evt.${params.accepts.type}.timeout`,
-        zodSchema: zod.object({
-          timeout: zod
-            .number()
-            .describe('The timeout in milliseconds which the handler exceeded'),
-          errorName: zod.string().optional().describe('The name of the error'),
-          errorMessage: zod
-            .string()
-            .optional()
-            .describe('The message of the error'),
-          errorStack: zod
-            .string()
-            .optional()
-            .describe('The stack of the error'),
-          eventData: zod.any().optional().describe('The input to the handler'),
-        }),
-      },
-    ],
-    handler: async ({
-      type,
-      data,
-      params: topicParams,
-      openTelemetry,
-      isTimedOut,
-      timeoutMs,
-    }) => {
-      const throwTimeoutError = () => {
-        throw new TimeoutError(
-          `The createSimpleHandler<${params.name || params.accepts.type}>.handler timed out after ${timeoutMs}`,
-        );
-      };
-
-      const activeContext = getActiveContext();      
+    contract: params.contract,
+    handler: async ({ data, params: topicParams, openTelemetry }) => {
+      const activeContext = getActiveContext(openTelemetry.context.traceparent);
       const activeSpan = openTelemetry.tracer.startSpan(
-        `createSimpleHandler<${params.accepts.type}>.handler`,
+        `createSimpleHandler<${contractParams.type}>.handler`,
         undefined,
         activeContext,
       );
@@ -119,34 +33,19 @@ export default function createSimpleHandler<TAcceptType extends string>(
         trace.setSpan(activeContext, activeSpan),
         async () => {
           {
-            let result: CloudEventHandlerFunctionOutput<
-              | `evt.${TAcceptType}.success`
-              | `evt.${TAcceptType}.error`
-              | `evt.${TAcceptType}.timeout`
-              | `sys.${TAcceptType}.error`
-            >[] = [];
-            const start = performance.now();
+            let result: CloudEventHandlerFunctionOutput<typeof params.contract>[] = [];
             try {
               const { __executionunits, ...handlerData } = await params.handler(
                 data,
                 {
                   span: activeSpan,
                   tracer: openTelemetry.tracer,
-                },
-                {
-                  startMs: start,
-                  timeoutMs,
-                  isTimedOut,
-                  throwTimeoutError,
-                  throwOnTimeoutError: () => {
-                    if (!isTimedOut()) return;
-                    throwTimeoutError();
-                  },
+                  context: parseContext(activeSpan),
                 },
               );
               result.push({
-                type: `evt.${formatTemplate(params.accepts.type, topicParams)}.success` as `evt.${TAcceptType}.success`,
-                data: handlerData,
+                type: `evt.${formatTemplate(contractParams.type, topicParams)}.success` as any,
+                data: handlerData as any,
                 executionunits: __executionunits,
               });
               activeSpan.setStatus({
@@ -163,28 +62,26 @@ export default function createSimpleHandler<TAcceptType extends string>(
                 message: error.message,
               });
               let eventType: string =
-                `evt.${formatTemplate(params.accepts.type, topicParams)}.error` as `evt.${TAcceptType}.error`;
+                `evt.${formatTemplate(contractParams.type, topicParams)}.error` as any;
               if (error.name === 'TimeoutError') {
                 eventType =
-                  `evt.${formatTemplate(params.accepts.type, topicParams)}.timeout` as `evt.${TAcceptType}.timeout`;
+                  `evt.${formatTemplate(contractParams.type, topicParams)}.timeout` as any;
               }
               result.push({
                 type: eventType as any,
                 data: {
-                  timeout: timeoutMs,
                   errorName: error.name,
                   errorMessage: error.message,
                   errorStack: error.stack,
-                  eventData: { type, data },
-                },
+                } as any,
               });
             }
             return result;
           }
-        }
-      )
+        },
+      );
       activeSpan.end();
-      return result
+      return result;
     },
   });
 }
