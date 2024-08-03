@@ -2904,13 +2904,20 @@ write-file-atomic@^4.0.2:
     imurmurhash "^0.1.4"
     signal-exit "^3.0.7"
 
-xorca-cloudevent@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/xorca-cloudevent/-/xorca-cloudevent-0.0.3.tgz#f271b46b60dfa0496985b6474e4a3e4bf117d274"
-  integrity sha512-7keqneeQXRZ8GMDUuxD2QghO0Gomu6Hf/2ylxhFeZtgFSxTa16IZwGfQybVRLQ2QUnZ3pimAOZMANAV6gso7gA==
+xorca-cloudevent@^0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/xorca-cloudevent/-/xorca-cloudevent-0.0.4.tgz#2f0af5636a505b117403c5a60d950e5538342c93"
+  integrity sha512-vcN5Rr7Glu4iLZ+G4hXhBApLDKoIRPvVarls5BaAfc/RyOvOx/8pz0+FH5Q4AyK4I/bPwERUk9gCpgXkkPk6KQ==
   dependencies:
     cloudevents "^8.0.2"
     uuid "^10.0.0"
+    zod "^3.22.4"
+
+xorca-contract@^0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/xorca-contract/-/xorca-contract-0.0.4.tgz#d1c4a333851f714a74dd7d072828159b158026b4"
+  integrity sha512-LTa9XEj4anwLgA2JNLT2pSLkRu3FI+4YfIB7ixKmenVAVybmIvKmsXnkQKud6bl4L17fHlVKWoUYvrHquyH1WQ==
+  dependencies:
     zod "^3.22.4"
 
 y18n@^5.0.5:

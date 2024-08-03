@@ -53,7 +53,13 @@ export function matchStringTemplate(
   variableNames.forEach((name, index) => {
     result[name] = variableValues[index];
   });
-  return { matched: true, result };
+  const toReturn = { matched: true, result };
+  console.log({
+    inputString,
+    template,
+    ...toReturn,
+  });
+  return toReturn;
 }
 
 /**

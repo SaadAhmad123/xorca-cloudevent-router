@@ -3,14 +3,12 @@ import { TelemetryContext, TelemetryLogLevels } from './types';
 
 /**
  * Retrieves the active context based on the provided trace header.
- * @param traceheader - The trace header string.
+ * @param traceparent - The trace header string.
  * @returns The active context.
  */
-export const getActiveContext = (
-  traceheader?: string | null,
-): Context => {
-  if (traceheader) {
-    return propagation.extract(context.active(), { traceparent: traceheader });
+export const getActiveContext = (traceparent?: string | null): Context => {
+  if (traceparent) {
+    return propagation.extract(context.active(), { traceparent: traceparent });
   }
   return context.active();
 };

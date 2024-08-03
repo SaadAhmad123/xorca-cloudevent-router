@@ -7,7 +7,7 @@ import {
 } from './types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { matchStringTemplate } from '../utils';
+import { cleanString, matchStringTemplate } from '../utils';
 import {
   trace,
   context,
@@ -17,37 +17,27 @@ import {
 } from '@opentelemetry/api';
 import { getActiveContext, logToSpan, parseContext } from '../Telemetry';
 import { TelemetryContext } from '../Telemetry/types';
-import { v4 as uuidv4 } from 'uuid'
-import { XOrcaCloudEvent, XOrcaCloudEventSchemaGenerator } from 'xorca-cloudevent';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  XOrcaCloudEvent,
+  XOrcaCloudEventSchemaGenerator,
+} from 'xorca-cloudevent';
+import { XOrcaBaseContract, XOrcaContractInfer } from 'xorca-contract';
 
 /**
  * Manages CloudEvent handlers with type validation, distributed tracing, and error handling.
- * Supports input/output event schemas, logging, and AsyncAPI documentation generation.
- *
- * @template TAcceptType - The CloudEvent type this handler accepts.
- * @template TEmitType - The CloudEvent types this handler may emit.
  */
 export default class CloudEventHandler<
-  TAcceptType extends string,
-  TEmitType extends string,
+  TContract extends XOrcaBaseContract<any, any, any>,
 > {
-  private otelTracer: Tracer;
+  protected otelTracer: Tracer;
 
   /**
    * Creates a new CloudEventHandler.
    * @param {ICloudEventHandler} params - Configuration for the event handler.
-   * @throws {CloudEventHandlerError} If the 'name' parameter is invalid.
    */
-  constructor(protected params: ICloudEventHandler<TAcceptType, TEmitType>) {
-    this.params.name = this.params.name || this.topic;
-    this.params.timeoutMs = this.params.timeoutMs || 4 * 60 * 1000;
+  constructor(protected params: ICloudEventHandler<TContract>) {
     this.otelTracer = trace.getTracer(this.topic);
-
-    if (this.params.name.includes(' ')) {
-      throw new CloudEventHandlerError(
-        `[CloudEventHandler][constructor] The 'name' must not contain any spaces or special characters but the provided is ${this.params.name}`,
-      );
-    }
   }
 
   /**
@@ -56,17 +46,11 @@ export default class CloudEventHandler<
    * @returns The accept event type string, acting as the topic for this handler.
    */
   public get topic() {
-    return this.params.accepts.type;
+    return this.params.contract.accepts.type;
   }
 
-  /**
-   * Validates a CloudEvent against the expected schema.
-   * @param {XOrcaCloudEvent} event - The CloudEvent to validate.
-   * @throws {CloudEventHandlerError} If validation fails.
-   * @protected
-   */
   protected validateCloudEvent(event: XOrcaCloudEvent) {
-    const fieldsToValidate = ['subject', 'type', 'data', 'datacontenttype']
+    const fieldsToValidate = ['subject', 'type', 'data', 'datacontenttype'];
     for (const field of fieldsToValidate) {
       // @ts-ignore
       if (!event.toJSON()[field]) {
@@ -76,25 +60,26 @@ export default class CloudEventHandler<
         );
       }
     }
-    const { type, data, datacontenttype } = event;
-    if (!(datacontenttype || '').includes('application/cloudevents+json')) {
-      throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] The event 'datacontenttype' MUST be 'application/cloudevents+json; charset=UTF-8' but the provided is ${datacontenttype}`,
-        event,
-      );
-    }
-    const matchResp = matchStringTemplate(type, this.params.accepts.type);
+    const { type, data } = event;
+    const matchResp = matchStringTemplate(
+      type,
+      this.params.contract.accepts.type,
+    );
     if (!matchResp.matched) {
       throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] The handler only accepts type=${this.params.accepts.type} but the provided is ${type}.`,
+        `[CloudEventHandler][cloudevent] The handler only accepts type=${this.params.contract.accepts.type} but the provided is ${type}.`,
         event,
       );
     }
 
-    const inputParse = this.params.accepts.zodSchema.safeParse(data);
+    const inputParse = this.params.contract.accepts.schema.safeParse(data);
     if (!inputParse.success) {
       throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] Invalid handler input data. The response data does not match type=${this.params.accepts.type} expected data shape`,
+        cleanString(`
+          [CloudEventHandler][cloudevent] Invalid handler input data. 
+          The response data does not match type=${this.params.contract.accepts.type} 
+          expected data shape
+        `),
         event,
         {
           error: inputParse.error.message,
@@ -104,22 +89,13 @@ export default class CloudEventHandler<
     }
   }
 
-  /**
-   * Wraps the event handler function with error handling.
-   * @param {CloudEventHandlerFunctionInput<TAcceptType, TEventData>} event - The input event.
-   * @returns {Promise<CloudEventHandlerFunctionOutput<TEmitType>[]>} Processed event(s).
-   * @throws {CloudEventHandlerError} If the handler function throws an error.
-   * @protected
-   */
-  protected async errorHandledHandler<
-    TEventData extends Record<string, any> = Record<string, any>,
-  >(
-    event: CloudEventHandlerFunctionInput<TAcceptType, TEventData>,
-  ): Promise<CloudEventHandlerFunctionOutput<TEmitType>[]> {
+  protected async errorHandledHandler(
+    event: CloudEventHandlerFunctionInput<TContract>,
+  ): Promise<CloudEventHandlerFunctionOutput<TContract>[]> {
     try {
-      return await this.params.handler({
+      return (await this.params.handler({
         ...event,
-      });
+      })) as any;
     } catch (e) {
       const error = new CloudEventHandlerError(
         `[CloudEventHandler][cloudevent][handler] Handler errored (message=${(e as Error).message})`,
@@ -148,29 +124,32 @@ export default class CloudEventHandler<
    */
   protected convertHandlerResponseToCloudEvent(
     incomingEvent: XOrcaCloudEvent,
-    contentForOutgoingEvent: CloudEventHandlerFunctionOutput<TEmitType>,
+    contentForOutgoingEvent: CloudEventHandlerFunctionOutput<TContract>,
     elapsedTime: number,
     telemetryContext: TelemetryContext,
   ) {
     // Checking if the response type matching as one of the emits
-    const respEvent = this.params.emits.filter(
+    const respEvent = this.params.contract.emitables.filter(
       (item) =>
-        matchStringTemplate(contentForOutgoingEvent.type, item.type).matched,
+        matchStringTemplate(
+          contentForOutgoingEvent.type.toString(),
+          item.type.toString(),
+        ).matched,
     );
     if (!respEvent.length) {
       throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=${contentForOutgoingEvent.type} does not match any of the provided in 'emits'`,
+        `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response type=${contentForOutgoingEvent.type.toString()} does not match any of the provided in 'emits'`,
         incomingEvent,
         { handlerResponse: contentForOutgoingEvent },
       );
     }
     // Check if the response output data shape is the same as the the emit type expects
-    const parseResp = respEvent[0].zodSchema.safeParse(
+    const parseResp = respEvent[0].schema.safeParse(
       contentForOutgoingEvent.data,
     );
     if (!parseResp.success) {
       throw new CloudEventHandlerError(
-        `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=${contentForOutgoingEvent.type} expected data shape`,
+        `[CloudEventHandler][cloudevent] Invalid handler repsonse. The response data does not match type=${contentForOutgoingEvent.type.toString()} expected data shape`,
         incomingEvent,
         {
           handlerResponse: contentForOutgoingEvent,
@@ -188,18 +167,18 @@ export default class CloudEventHandler<
       contentForOutgoingEvent.executionunits || this.params.executionUnits || 0;
     return new XOrcaCloudEvent({
       id: uuidv4(),
-      specversion: "1.0",
+      specversion: '1.0',
       to: !this.params.disableRoutingMetadata && toField ? toField : undefined,
       redirectto:
         !this.params.disableRoutingMetadata &&
         contentForOutgoingEvent.redirectto
           ? contentForOutgoingEvent.redirectto
           : undefined,
-      type: contentForOutgoingEvent.type,
+      type: contentForOutgoingEvent.type.toString(),
       data: {
         ...(contentForOutgoingEvent.data || {}),
       },
-      source: contentForOutgoingEvent.source || this.params.name || this.topic,
+      source: contentForOutgoingEvent.source || this.topic,
       subject: contentForOutgoingEvent.subject || incomingEvent.subject || '',
       traceparent: telemetryContext.traceparent,
       tracestate: telemetryContext.tracestate,
@@ -221,35 +200,28 @@ export default class CloudEventHandler<
     span: Span,
   ): Promise<XOrcaCloudEvent[]> {
     this.validateCloudEvent(event);
-    const matchResp = matchStringTemplate(event.type, this.params.accepts.type);
-    let responses: CloudEventHandlerFunctionOutput<TEmitType>[] = [];
-
-    let handlerTimedOut = false;
-    let timeoutHandler: NodeJS.Timeout | undefined = this.params.timeoutMs
-      ? setTimeout(() => {
-          handlerTimedOut = true;
-        }, this.params.timeoutMs)
-      : undefined;
+    const matchResp = matchStringTemplate(
+      event.type,
+      this.params.contract.accepts.type,
+    );
+    let responses: CloudEventHandlerFunctionOutput<TContract>[] = [];
 
     const start = performance.now();
     responses = await this.errorHandledHandler({
-      type: event.type as TAcceptType,
-      data: this.params.accepts.zodSchema.parse(event.data || {}),
+      type: event.type,
+      data: this.params.contract.accepts.schema.parse(event.data || {}),
       params: matchResp.result,
       event,
       source: event.source,
       to: (event.to || undefined) as string | undefined,
       redirectto: (event.redirectto || undefined) as string | undefined,
-      isTimedOut: () => handlerTimedOut,
-      timeoutMs: this.params.timeoutMs as number,
       openTelemetry: {
         span: span,
         tracer: this.otelTracer,
+        context: parseContext(span),
       },
     });
     const elapsedTime = performance.now() - start;
-
-    clearTimeout(timeoutHandler);
     const telemetryContext = parseContext(span);
     return responses.map((resp) =>
       this.convertHandlerResponseToCloudEvent(
@@ -276,13 +248,13 @@ export default class CloudEventHandler<
       telemetryContext?.traceparent || event.traceparent || null,
     );
     const activeSpan = this.otelTracer.startSpan(
-      `CloudEventHandler.cloudevent<${event.type}>`,
+      `CloudEventHandler.cloudevent<${this.topic}>`,
       {
         attributes: Object.assign(
           {},
-          ...Object
-            .entries(event.openTelemetryAttributes())
-            .map(([key, value]) => ({[`to_process.${key}`]: value}))
+          ...Object.entries(event.openTelemetryAttributes()).map(
+            ([key, value]) => ({ [`to_process.${key}`]: value }),
+          ),
         ),
       },
       activeContext,
@@ -317,11 +289,11 @@ export default class CloudEventHandler<
                 success: false,
                 eventToEmit: new XOrcaCloudEvent({
                   id: uuidv4(),
-                  specversion: "1.0",
+                  specversion: '1.0',
                   to: !this.params.disableRoutingMetadata ? event.source : null,
                   redirectto: null,
-                  source: this.params.name || this.topic,
-                  type: `sys.${this.params.name || this.topic}.error`,
+                  source: this.topic,
+                  type: `sys.${this.topic}.error`,
                   subject:
                     event.subject || `no-subject:cloudevent-id=${event.id}`,
                   data: {
@@ -344,15 +316,9 @@ export default class CloudEventHandler<
     );
 
     result.forEach(({ eventToEmit }, index) => {
-      Object
-        .entries(eventToEmit)
-        .forEach(
-          ([key, value]) => 
-            activeSpan.setAttribute(
-              `to_emit.[${index}].${key}`,
-              value
-            )
-        )
+      Object.entries(eventToEmit).forEach(([key, value]) =>
+        activeSpan.setAttribute(`to_emit.[${index}].${key}`, value),
+      );
     });
 
     activeSpan.end();
@@ -360,54 +326,29 @@ export default class CloudEventHandler<
   }
 
   /**
-   * Compiles a list of all event types the handler can emit.
-   * @returns {Array} Emit configurations.
-   * @protected
-   */
-  protected getAllEmits() {
-    return [
-      ...this.params.emits,
-      {
-        type: `sys.${this.params.name}.error`,
-        zodSchema: zod.object({
-          errorName: zod.string().optional().describe('The name of the error'),
-          errorMessage: zod
-            .string()
-            .optional()
-            .describe('The message of the error'),
-          errorStack: zod
-            .string()
-            .optional()
-            .describe('The stack of the error'),
-          event: zod.string().describe('The event which caused the error'),
-          additional: zod.any().describe('The error additional error data'),
-        }),
-        description:
-          "Event raised when error happens while using 'safeCloudevent' method. Can happen on invalid events types or some other errors",
-      },
-    ];
-  }
-
-  /**
    * Retrieves the detailed interface of this CloudEventHandler.
-   * @returns {Record<string, any>} Detailed configuration of the handler.
+   * @returns Detailed configuration of the handler.
    * @public
    */
-  public getInterface(): Record<string, any> {
+  public interface() {
     return {
-      name: this.params.name,
+      name: this.topic,
       description: this.params.description,
-      accepts: zodToJsonSchema(XOrcaCloudEventSchemaGenerator({
-        type: this.params.accepts.type,
-        source: this.topic,
-        data: this.params.accepts.zodSchema,
-      })),
-      emits: this.getAllEmits().map((item) =>
-        zodToJsonSchema(XOrcaCloudEventSchemaGenerator({
-          type: item.type,
+      accepts: zodToJsonSchema(
+        XOrcaCloudEventSchemaGenerator({
+          type: this.params.contract.accepts.type,
           source: this.topic,
-          data: item.zodSchema,
-        })),
+          data: this.params.contract.accepts.schema,
+        }),
+      ),
+      emits: this.params.contract.emitables.map((item) =>
+        zodToJsonSchema(
+          XOrcaCloudEventSchemaGenerator({
+            type: item.type,
+            source: this.topic,
+            data: item.schema,
+          }),
+        ),
       ),
     };
   }
@@ -418,7 +359,7 @@ export default class CloudEventHandler<
    * @returns An object containing the configuration parameters of this CloudEventHandler instance.
    * @public
    */
-  toDict(): ICloudEventHandler<TAcceptType, TEmitType> {
+  toDict(): ICloudEventHandler<TContract> {
     return { ...this.params };
   }
 }
