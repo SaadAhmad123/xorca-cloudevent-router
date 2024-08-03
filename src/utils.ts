@@ -54,11 +54,6 @@ export function matchStringTemplate(
     result[name] = variableValues[index];
   });
   const toReturn = { matched: true, result };
-  console.log({
-    inputString,
-    template,
-    ...toReturn,
-  });
   return toReturn;
 }
 

@@ -1,7 +1,7 @@
-import * as zod from 'zod';
 import {
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,
+  HandlerOpenTelemetryContext,
   ICloudEventHandler,
   ISafeCloudEventResponse,
 } from './types';
@@ -11,8 +11,6 @@ import { cleanString, matchStringTemplate } from '../utils';
 import {
   trace,
   context,
-  Span,
-  Tracer,
   SpanStatusCode,
 } from '@opentelemetry/api';
 import { getActiveContext, logToSpan, parseContext } from '../Telemetry';
@@ -22,7 +20,7 @@ import {
   XOrcaCloudEvent,
   XOrcaCloudEventSchemaGenerator,
 } from 'xorca-cloudevent';
-import { XOrcaBaseContract, XOrcaContractInfer } from 'xorca-contract';
+import { XOrcaBaseContract } from 'xorca-contract';
 
 /**
  * Manages CloudEvent handlers with type validation, distributed tracing, and error handling.
@@ -30,15 +28,12 @@ import { XOrcaBaseContract, XOrcaContractInfer } from 'xorca-contract';
 export default class CloudEventHandler<
   TContract extends XOrcaBaseContract<any, any, any>,
 > {
-  protected otelTracer: Tracer;
-
+  
   /**
    * Creates a new CloudEventHandler.
    * @param {ICloudEventHandler} params - Configuration for the event handler.
    */
-  constructor(protected params: ICloudEventHandler<TContract>) {
-    this.otelTracer = trace.getTracer(this.topic);
-  }
+  constructor(protected params: ICloudEventHandler<TContract>) { }
 
   /**
    * Gets the event type this handler is configured to accept, effectively defining the handler's topic.
@@ -112,16 +107,6 @@ export default class CloudEventHandler<
     }
   }
 
-  /**
-   * Converts handler response to a CloudEvent.
-   * @param {XOrcaCloudEvent} incomingEvent - The original CloudEvent.
-   * @param {CloudEventHandlerFunctionOutput<TEmitType>} contentForOutgoingEvent - Handler's response.
-   * @param {number} elapsedTime - Processing time.
-   * @param {TelemetryContext} telemetryContext - Telemetry context.
-   * @returns {XOrcaCloudEvent} Constructed CloudEvent.
-   * @throws {CloudEventHandlerError} If response type or data is invalid.
-   * @protected
-   */
   protected convertHandlerResponseToCloudEvent(
     incomingEvent: XOrcaCloudEvent,
     contentForOutgoingEvent: CloudEventHandlerFunctionOutput<TContract>,
@@ -187,17 +172,9 @@ export default class CloudEventHandler<
     });
   }
 
-  /**
-   * Processes an incoming CloudEvent.
-   * @param {XOrcaCloudEvent} event - The CloudEvent to process.
-   * @param {Span} span - OpenTelemetry span for tracing.
-   * @returns {Promise<XOrcaCloudEvent[]>} Processed CloudEvents.
-   * @throws {CloudEventHandlerError} If processing fails.
-   * @protected
-   */
   protected async processCloudevent(
     event: XOrcaCloudEvent,
-    span: Span,
+    openTelemetry: HandlerOpenTelemetryContext,
   ): Promise<XOrcaCloudEvent[]> {
     this.validateCloudEvent(event);
     const matchResp = matchStringTemplate(
@@ -215,14 +192,10 @@ export default class CloudEventHandler<
       source: event.source,
       to: (event.to || undefined) as string | undefined,
       redirectto: (event.redirectto || undefined) as string | undefined,
-      openTelemetry: {
-        span: span,
-        tracer: this.otelTracer,
-        context: parseContext(span),
-      },
+      openTelemetry: openTelemetry,
     });
     const elapsedTime = performance.now() - start;
-    const telemetryContext = parseContext(span);
+    const telemetryContext = parseContext(openTelemetry.span);
     return responses.map((resp) =>
       this.convertHandlerResponseToCloudEvent(
         event,
@@ -233,21 +206,15 @@ export default class CloudEventHandler<
     );
   }
 
-  /**
-   * Safely processes a CloudEvent, handling errors.
-   * @param {XOrcaCloudEvent} event - The CloudEvent to process.
-   * @param {TelemetryContext} [telemetryContext] - Optional telemetry context.
-   * @returns {Promise<ISafeCloudEventResponse[]>} Processed or error CloudEvents.
-   * @public
-   */
   public async cloudevent(
     event: XOrcaCloudEvent,
-    telemetryContext?: TelemetryContext,
+    openTelemetry?: HandlerOpenTelemetryContext,
   ): Promise<ISafeCloudEventResponse[]> {
     const activeContext = getActiveContext(
-      telemetryContext?.traceparent || event.traceparent || null,
+      openTelemetry?.context?.traceparent || event.traceparent || null,
     );
-    const activeSpan = this.otelTracer.startSpan(
+    const activeTracer = openTelemetry?.tracer || trace.getTracer(this.topic)
+    const activeSpan = activeTracer.startSpan(
       `CloudEventHandler.cloudevent<${this.topic}>`,
       {
         attributes: Object.assign(
@@ -265,7 +232,11 @@ export default class CloudEventHandler<
       async () => {
         const telemetryContext = parseContext(activeSpan, activeContext);
         const start = performance.now();
-        return await this.processCloudevent(event, activeSpan)
+        return await this.processCloudevent(event, {
+          tracer: activeTracer,
+          span: activeSpan,
+          context: parseContext(activeSpan)
+        })
           .then((events) => {
             activeSpan.setStatus({
               code: SpanStatusCode.OK,

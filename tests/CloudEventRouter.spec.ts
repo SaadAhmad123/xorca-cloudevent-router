@@ -204,7 +204,6 @@ describe('CloudEventRouter spec', () => {
         datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
-    console.log(JSON.stringify(resp, null, 2))
     expect(resp.length).toBe(1);
     expect(resp[0].eventToEmit?.type).toBe('evt.books.fetch.error');
     expect(resp[0].eventToEmit?.data?.errorMessage).toBe(
