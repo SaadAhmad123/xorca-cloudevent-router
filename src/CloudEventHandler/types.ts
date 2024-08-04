@@ -80,6 +80,9 @@ export type CloudEventHandlerFunctionInput<
 export interface ICloudEventHandler<
   TContract extends XOrcaBaseContract<any, any, any>,
 > {
+  /** Optional name of the handler */
+  name?: string 
+
   /** Optional description of the handler */
   description?: string;
   

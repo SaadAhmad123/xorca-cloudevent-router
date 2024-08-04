@@ -33,7 +33,16 @@ export default class CloudEventHandler<
    * Creates a new CloudEventHandler.
    * @param {ICloudEventHandler} params - Configuration for the event handler.
    */
-  constructor(protected params: ICloudEventHandler<TContract>) { }
+  constructor(protected params: ICloudEventHandler<TContract>) {
+    this.params.name = params.name || this.topic
+    this.params.name = this.params.name?.trim()
+    const regex: RegExp = /^([a-zA-Z0-9]+|\{[a-zA-Z0-9]+\})(\.[a-zA-Z0-9]+|\.\{\{[a-zA-Z0-9]+\}\})*$/;
+    if (!this.params.name || !regex.test(this.params.name) || this.params.name[0] === '.') {
+      throw new CloudEventHandlerError(cleanString(`
+        Invalid 'name' provided (=${this.params.name}). It must follow the regex ${regex.toString?.()}
+      `))
+    }
+  }
 
   /**
    * Gets the event type this handler is configured to accept, effectively defining the handler's topic.
@@ -269,8 +278,8 @@ export default class CloudEventHandler<
                   specversion: '1.0',
                   to: !this.params.disableRoutingMetadata ? event.source : null,
                   redirectto: null,
-                  source: this.topic,
-                  type: `sys.${this.topic}.error`,
+                  source: this.params.name || this.topic,
+                  type: `sys.${this.params.name}.error`,
                   subject:
                     event.subject || `no-subject:cloudevent-id=${event.id}`,
                   data: {
