@@ -230,7 +230,7 @@ export default class CloudEventHandler<
     );
     const activeTracer = openTelemetry?.tracer || trace.getTracer(this.topic)
     const activeSpan = activeTracer.startSpan(
-      `CloudEventHandler.cloudevent<${this.topic}>`,
+      `CloudEventHandler.cloudevent<${this.params.name}>`,
       {
         attributes: Object.assign(
           {},
