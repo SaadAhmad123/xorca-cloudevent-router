@@ -36,7 +36,7 @@ export default class CloudEventHandler<
   constructor(protected params: ICloudEventHandler<TContract>) {
     this.params.name = params.name || this.topic
     this.params.name = this.params.name?.trim()
-    const regex: RegExp = /^([a-zA-Z0-9]+|\{[a-zA-Z0-9]+\})(\.[a-zA-Z0-9]+|\.\{\{[a-zA-Z0-9]+\}\})*$/;
+    const regex: RegExp = /^(?:[a-zA-Z0-9_]+|\{\{[a-zA-Z0-9_]+\}\})(?:\.(?:[a-zA-Z0-9_]+|\{\{[a-zA-Z0-9_]+\}\}))*$/;
     if (!this.params.name || !regex.test(this.params.name) || this.params.name[0] === '.') {
       throw new CloudEventHandlerError(cleanString(`
         Invalid 'name' provided (=${this.params.name}). It must follow the regex ${regex.toString?.()}
