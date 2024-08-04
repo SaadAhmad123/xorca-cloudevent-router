@@ -44,7 +44,6 @@ export const logToSpan = (
   params: {
     level: TelemetryLogLevels;
     message: string;
-    [key: string]: any;
   },
 ): void => {
   span.addEvent('log_message', {
