@@ -101,7 +101,7 @@ export default class CloudEventHandler<
       );
       logToSpan(event.openTelemetry.span, {
         level: 'ERROR',
-        message: error.message,
+        message: `${error.message}\n\nError stack - ${error.stack}`,
       });
       throw error;
     }
@@ -259,7 +259,7 @@ export default class CloudEventHandler<
             });
             logToSpan(activeSpan, {
               level: 'CRITICAL',
-              message: e.message,
+              message: `${e.message}\n\nError stack - ${e.stack}`,
             });
             return [
               {
