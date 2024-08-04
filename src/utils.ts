@@ -158,6 +158,7 @@ export function cleanString(s: string): string {
   return s
     .split('\n')
     .map((item) => item.trim())
+    .filter(item => Boolean(item))
     .join('\n');
 }
 
