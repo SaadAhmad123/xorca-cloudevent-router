@@ -2913,10 +2913,10 @@ xorca-cloudevent@^0.0.4:
     uuid "^10.0.0"
     zod "^3.22.4"
 
-xorca-contract@^0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/xorca-contract/-/xorca-contract-0.0.4.tgz#d1c4a333851f714a74dd7d072828159b158026b4"
-  integrity sha512-LTa9XEj4anwLgA2JNLT2pSLkRu3FI+4YfIB7ixKmenVAVybmIvKmsXnkQKud6bl4L17fHlVKWoUYvrHquyH1WQ==
+xorca-contract@^0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/xorca-contract/-/xorca-contract-0.0.5.tgz#7525dff14309b7758b173b82529ba27036e4965e"
+  integrity sha512-QKk9vn8NEhkZmbsAYrMhaziNSvxUyBWqFlZRLsAr46dPRRCUm7RZUlhZks2ceB8TuAqTNJGrGb6goTZ8mauxpA==
   dependencies:
     zod "^3.22.4"
 
