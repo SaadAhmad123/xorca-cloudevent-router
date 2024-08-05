@@ -10,8 +10,12 @@ import createSimpleHandler from './CloudEventHandler/createSimpleHandler';
 import CloudEventRouter from './CloudEventRouter';
 import { CloudEventRouterError } from './CloudEventRouter/errors';
 import { ICloudEventRouter } from './CloudEventRouter/types';
-import { getActiveContext, parseContext, logToSpan } from './Telemetry';
-import { TelemetryContext, TelemetryLogLevels } from './Telemetry/types';
+import { getActiveContext, parseContext, logToSpan, newOtelSpan } from './Telemetry';
+import {
+  TelemetryContext,
+  TelemetryLogLevels,
+  HandlerOpenTelemetryContext,
+} from './Telemetry/types';
 
 export {
   CloudEventHandler,
@@ -28,4 +32,6 @@ export {
   logToSpan,
   TelemetryContext,
   TelemetryLogLevels,
+  HandlerOpenTelemetryContext,
+  newOtelSpan,
 };

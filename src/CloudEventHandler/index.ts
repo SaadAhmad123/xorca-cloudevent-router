@@ -1,18 +1,14 @@
 import {
   CloudEventHandlerFunctionInput,
   CloudEventHandlerFunctionOutput,
-  HandlerOpenTelemetryContext,
   ICloudEventHandler,
   SafeCloudEventResponse,
 } from './types';
+import { HandlerOpenTelemetryContext } from '../Telemetry/types';
 import { CloudEventHandlerError } from './errors';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { cleanString, matchStringTemplate } from '../utils';
-import {
-  trace,
-  context,
-  SpanStatusCode,
-} from '@opentelemetry/api';
+import { trace, context, SpanStatusCode } from '@opentelemetry/api';
 import { getActiveContext, logToSpan, parseContext } from '../Telemetry';
 import { TelemetryContext } from '../Telemetry/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,19 +24,25 @@ import { XOrcaBaseContract } from 'xorca-contract';
 export default class CloudEventHandler<
   TContract extends XOrcaBaseContract<any, any, any>,
 > {
-  
   /**
    * Creates a new CloudEventHandler.
    * @param {ICloudEventHandler} params - Configuration for the event handler.
    */
   constructor(protected params: ICloudEventHandler<TContract>) {
-    this.params.name = params.name || this.topic
-    this.params.name = this.params.name?.trim()
-    const regex: RegExp = /^(?:[a-zA-Z0-9_]+|\{\{[a-zA-Z0-9_]+\}\})(?:\.(?:[a-zA-Z0-9_]+|\{\{[a-zA-Z0-9_]+\}\}))*$/;
-    if (!this.params.name || !regex.test(this.params.name) || this.params.name[0] === '.') {
-      throw new CloudEventHandlerError(cleanString(`
+    this.params.name = params.name || this.topic;
+    this.params.name = this.params.name?.trim();
+    const regex: RegExp =
+      /^(?:[a-zA-Z0-9_]+|\{\{[a-zA-Z0-9_]+\}\})(?:\.(?:[a-zA-Z0-9_]+|\{\{[a-zA-Z0-9_]+\}\}))*$/;
+    if (
+      !this.params.name ||
+      !regex.test(this.params.name) ||
+      this.params.name[0] === '.'
+    ) {
+      throw new CloudEventHandlerError(
+        cleanString(`
         Invalid 'name' provided (=${this.params.name}). It must follow the regex ${regex.toString?.()}
-      `))
+      `),
+      );
     }
   }
 
@@ -228,16 +230,19 @@ export default class CloudEventHandler<
     const activeContext = getActiveContext(
       openTelemetry?.context?.traceparent || event.traceparent || null,
     );
-    const activeTracer = openTelemetry?.tracer || trace.getTracer(this.topic)
+    const activeTracer = openTelemetry?.tracer || trace.getTracer(this.topic);
     const activeSpan = activeTracer.startSpan(
       `CloudEventHandler.cloudevent<${this.params.name}>`,
       {
-        attributes: Object.assign(
-          {},
-          ...Object.entries(event.openTelemetryAttributes()).map(
-            ([key, value]) => ({ [`to_process.${key}`]: value }),
+        attributes: {
+          ...Object.assign(
+            {},
+            ...Object.entries(event.openTelemetryAttributes()).map(
+              ([key, value]) => ({ [`to_process.${key}`]: value }),
+            ),
           ),
-        ),
+          'xorca.span.kind': 'CLOUD_EVENT_HANDLER',
+        },
       },
       activeContext,
     );
@@ -250,7 +255,7 @@ export default class CloudEventHandler<
         return await this.processCloudevent(event, {
           tracer: activeTracer,
           span: activeSpan,
-          context: parseContext(activeSpan)
+          context: parseContext(activeSpan),
         })
           .then((events) => {
             activeSpan.setStatus({

@@ -28,7 +28,7 @@ const summaryHandler = new CloudEventHandler({
       type: 'cmd.gpt.summary',
       schema: zod.object({
         content: zod.string(),
-      })
+      }),
     },
     emits: {
       'evt.gpt.summary.success': zod.object({
@@ -36,8 +36,8 @@ const summaryHandler = new CloudEventHandler({
       }),
       'evt.gpt.summary.error': zod.object({
         error: zod.string(),
-      }), 
-    }
+      }),
+    },
   }),
   handler: async ({ data }) => [
     {
@@ -65,7 +65,8 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
+        datacontenttype:
+          'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
       new XOrcaCloudEvent({
         subject: 'saad',
@@ -74,7 +75,8 @@ describe('CloudEventRouter spec', () => {
           content: 'content to look at',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
+        datacontenttype:
+          'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(2);
@@ -104,7 +106,8 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
+        datacontenttype:
+          'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -161,7 +164,8 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
+        datacontenttype:
+          'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(1);
@@ -201,7 +205,8 @@ describe('CloudEventRouter spec', () => {
           book_id: 'saad',
         },
         source: '/test',
-        datacontenttype: 'application/cloudevents+json; charset=UTF-8; profile=xorca',
+        datacontenttype:
+          'application/cloudevents+json; charset=UTF-8; profile=xorca',
       }),
     ]);
     expect(resp.length).toBe(1);

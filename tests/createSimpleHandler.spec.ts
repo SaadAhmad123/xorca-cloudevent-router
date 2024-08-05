@@ -38,13 +38,12 @@ describe('createSimpleHandler', () => {
       new XOrcaCloudEvent({
         source: '/test/saad',
         type: 'cmd.evt.handler',
-        subject: "something",
+        subject: 'something',
         data: {
-          input: "Saad"
-        }
-      })
-    )
-    
+          input: 'Saad',
+        },
+      }),
+    );
   });
 
   it('should handle errors', async () => {
@@ -63,11 +62,11 @@ describe('createSimpleHandler', () => {
       new XOrcaCloudEvent({
         source: '/test/saad',
         type: 'cmd.test',
-        subject: "something",
+        subject: 'something',
         data: {
-          input: "Saad"
-        }
-      })
-    )
+          input: 'Saad',
+        },
+      }),
+    );
   });
 });

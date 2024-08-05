@@ -1,3 +1,5 @@
+import { Span, Tracer } from '@opentelemetry/api';
+
 /**
  * Represents the available log levels for telemetry.
  */
@@ -16,4 +18,18 @@ export type TelemetryContext = {
   traceparent: string | null;
   /** The tracestate header value */
   tracestate: string | null;
+};
+/**
+ * Represents the OpenTelemetry context for a handler.
+ */
+
+export type HandlerOpenTelemetryContext = {
+  /** The current span */
+  span: Span;
+
+  /** The tracer instance */
+  tracer: Tracer;
+
+  /** The telemetry context */
+  context: TelemetryContext;
 };

@@ -11,17 +11,15 @@ import { XOrcaSimpleContract } from 'xorca-contract';
 
 /**
  * Creates a simple CloudEventHandler for handling cloud events.
- * 
+ *
  * @template TContract - The type of the XOrcaSimpleContract.
  * @param {ICreateSimpleCloudEventHandler<TContract>} params - The parameters for creating the handler.
  * @returns {CloudEventHandler} A new CloudEventHandler instance.
  */
 export default function createSimpleHandler<
-  TContract extends XOrcaSimpleContract<any, any, any>
->(
-  params: ICreateSimpleCloudEventHandler<TContract>,
-) {
-  const contractParams = params.contract.parameters
+  TContract extends XOrcaSimpleContract<any, any, any>,
+>(params: ICreateSimpleCloudEventHandler<TContract>) {
+  const contractParams = params.contract.parameters;
 
   return new CloudEventHandler({
     disableRoutingMetadata: params.disableRoutingMetadata,
@@ -32,7 +30,11 @@ export default function createSimpleHandler<
       const activeContext = getActiveContext(openTelemetry.context.traceparent);
       const activeSpan = openTelemetry.tracer.startSpan(
         `createSimpleHandler<${contractParams.type}>.handler`,
-        undefined,
+        {
+          attributes: {
+            'xorca.span.kind': 'SIMPLE_HANDLER',
+          },
+        },
         activeContext,
       );
 
@@ -40,7 +42,9 @@ export default function createSimpleHandler<
         trace.setSpan(activeContext, activeSpan),
         async () => {
           {
-            let result: CloudEventHandlerFunctionOutput<typeof params.contract>[] = [];
+            let result: CloudEventHandlerFunctionOutput<
+              typeof params.contract
+            >[] = [];
             try {
               const { __executionunits, ...handlerData } = await params.handler(
                 data,
