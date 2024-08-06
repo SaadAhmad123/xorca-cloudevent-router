@@ -274,8 +274,13 @@ export default class CloudEventHandler<
             });
             logToSpan(activeSpan, {
               level: 'CRITICAL',
-              message: `${e.message}\n\nError stack - ${e.stack}`,
+              message: `${e.message}`,
             });
+            activeSpan.setAttributes({
+              'exception.type': `[CRITICAL] ${e.name}`,
+              'exception.message': e.message,
+              'exception.stacktrace': e.stack
+            })
             return [
               {
                 success: false,
@@ -307,12 +312,27 @@ export default class CloudEventHandler<
       },
     );
 
+    
     result.forEach(({ eventToEmit }, index) => {
-      Object.entries(eventToEmit).forEach(([key, value]) =>
+      Object.entries(eventToEmit.openTelemetryAttributes()).forEach(([key, value]) =>
         activeSpan.setAttribute(`to_emit.[${index}].${key}`, value),
       );
     });
 
+    const totalExecutionUnits = result.reduce((acc, cur) => {
+      try {
+        const unit = parseFloat(cur.eventToEmit.executionunits || "0")
+        if (isNaN(unit)) {
+          return acc
+        }
+        return acc + unit
+      }
+      catch {
+        return acc
+      }
+    }, 0)
+
+    activeSpan.setAttribute('xorca.executionunits.total', totalExecutionUnits)
     activeSpan.end();
     return result;
   }

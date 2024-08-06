@@ -73,6 +73,11 @@ export default function createSimpleHandler<
                 level: 'ERROR',
                 message: error.message,
               });
+              activeSpan.setAttributes({
+                'exception.type': error.name,
+                'exception.message': error.message,
+                'exception.stacktrace': error.stack,
+              })
               let eventType: string =
                 `evt.${formatTemplate(contractParams.type, topicParams)}.error` as any;
               if (error.name === 'TimeoutError') {
