@@ -33,6 +33,7 @@ export default function createSimpleHandler<
         {
           attributes: {
             'xorca.span.kind': 'SIMPLE_HANDLER',
+            'openinference.span.kind': "CHAIN",
           },
         },
         activeContext,

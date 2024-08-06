@@ -242,6 +242,7 @@ export default class CloudEventHandler<
             ),
           ),
           'xorca.span.kind': 'CLOUD_EVENT_HANDLER',
+          'openinference.span.kind': "CHAIN",
         },
       },
       activeContext,
